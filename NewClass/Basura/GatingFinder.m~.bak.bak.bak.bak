@@ -1,0 +1,238 @@
+function GatingFinder(varargin)
+    % if you want to change a parameter from its default value you have to
+    % type 'paramToChange', newValue, ...
+    % List of possible params is:
+    % v.contrast, objJitterPeriod, objSeed, stimSize, objSizeH, objSizeV,
+    % v.objCenterXY, backContrast, backReverseFreq, presentationLength,
+    % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
+    global vbl screen pd
+    if isempty(vbl)
+        vbl=0;
+    end
+
+    SPACEBAR = KbName('space');
+    ESCAPE = KbName('escape');
+    LEFTARROW = KbName('LeftArrow');
+    UPARROW = KbName('UpArrow');
+    RIGHTARROW = KbName('RightArrow');
+    DOWNARROW = KbName('DownArrow');
+    DELAY = 1;
+    NODELAY = 0;
+    INCREASE = 1;
+    DECREASE = -1;
+
+    p=ParseInput(varargin{:});
+
+    v.contrast = p.Results.objContrast;
+    objSeed = p.Results.objSeed;
+    v.diameter = 192;
+    
+    stimSize = p.Results.stimSize;
+    backContrast = p.Results.backContrast;
+    
+    presentationLength = 1;
+    debugging = p.Results.debugging;
+    barsWidth = p.Results.barsWidth;
+    waitframes = p.Results.waitframes;
+        
+    % Redefine the stimSize to incorporate an integer number of bars
+    stimSize = ceil(stimSize/barsWidth)*barsWidth;
+
+try    
+    InitScreen(debugging);
+    
+    % make the background texture
+    backTex{1} = GetCheckersTex(stimSize, 4, screen, backContrast);
+    backTex{2} = GetCheckersTex(stimSize, 8, screen, backContrast);
+    backTex{3} = GetCheckersTex(stimSize, 16, screen, backContrast);
+    backTex{4} = GetCheckersTex(stimSize, 32, screen, backContrast);
+    backTex{5} = GetCheckersTex(stimSize, 100, screen, backContrast);
+    backTex{6} = GetBarsTex(stimSize, 4, screen, backContrast);
+    backTex{7} = GetBarsTex(stimSize, 8, screen, backContrast);
+    backTex{8} = GetBarsTex(stimSize, 16, screen, backContrast);
+    backTex{9} = GetBarsTex(stimSize, 32, screen, backContrast);
+    backTex{10} = GetBarsTex(stimSize, 100, screen, backContrast);
+    
+    % Define the background Destination Rectangle
+    backRect = SetRect(0,0,stimSize, stimSize);
+    backRect = CenterRect(backRect, screen.rect);
+
+    % Define the source rectangles
+    backSource = SetRect(0,0,stimSize,stimSize);
+    backSourceOri = backSource;
+
+    objRect = SetRect(0,0,v.diameter, v.diameter);
+    objRect = CenterRect(objRect, screen.rect);
+    [v.objCenter(1), v.objCenter(2)] = RectCenter(objRect);
+
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+        pd = DefinePD();
+    end
+    
+    framesPerSec = 60;
+            
+    framesN = uint32(presentationLength*framesPerSec);
+
+            
+    %Restart a random stream per checker per contrast, all with the same
+    %seed
+    randStream = RandStream('mcg16807', 'Seed', objSeed);
+    
+    % preallocate objSeq for speed
+    objSeq = zeros(1, framesN);
+
+    exitFlag = 0;
+    v.backMode = 2;
+    v.barsWidth = [0 4 8 16 32 100 4 8 16 32 100];
+    v.meanIntensity = screen.gray;
+    v.backAngle = 0;
+    v.backTex = 1;
+    text = fieldnames(v);
+       
+    selection = 1;
+    % Animationloop:
+    
+    while 1         
+        objSeq = uint8(randn(randStream, 1, framesN)*v.meanIntensity*v.contrast+v.meanIntensity);
+        
+        if (v.contrast==1)
+            % Convert noise to binary
+            objSeq = (objSeq>v.meanIntensity)*255;
+        end
+        backSource = backSourceOri;
+        for frame=0:waitframes:framesN-1
+            Screen('FillRect', screen.w, screen.gray, [1 1 300 30]);
+            Screen(screen.w,'TextSize', 18);
+            Screen(screen.w, 'DrawText', [text{selection}, ' = ', num2str(v.(text{selection}))],1,1, screen.black );
+            
+            if (frame==0)
+                backSource = backSourceOri;
+            elseif (frame==30)
+                backSource = backSourceOri + v.barsWidth(v.backMode)*[1 0 1 0]; 
+            end
+            
+            % display the background
+            Screen('DrawTexture', screen.w, backTex{v.backTex}{1}, backSource, backRect, v.backAngle,1)
+            
+            % display checker
+            Screen('FillOval', screen.w, objSeq(1, frame+1), objRect)
+            
+            % Photodiode box
+            % --------------
+            DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+            
+            % Flip 'waitframes' monitor refresh intervals after last redraw.
+            vbl = Screen('Flip', screen.w, vbl + (waitframes - 0.5) * screen.ifi);
+            
+            
+            [keyIsDown, ~, keyCode, ~] = KbCheck;
+            if (keyIsDown)
+                if keyCode(ESCAPE)
+                    exitFlag = 1;
+                    break
+                elseif keyCode(SPACEBAR)
+                    % change mode
+                    pause(0.2);
+                    selection = mod(selection, length(text)) + 1;
+                    if (strcmp(text{selection}, 'barsWidth'))
+                        selection = selection+1;
+                    end
+                elseif keyCode(RIGHTARROW)
+                    v = ChangeSelection(selection, v, INCREASE, NODELAY);
+                elseif keyCode(LEFTARROW)
+                    v = ChangeSelection(selection, v, DECREASE, NODELAY);
+                elseif keyCode(UPARROW)
+                    v = ChangeSelection(selection, v, INCREASE, DELAY);
+                elseif keyCode(DOWNARROW)
+                    v = ChangeSelection(selection, v, DECREASE, DELAY);
+                end
+                objRect = SetRect(0,0,v.diameter, v.diameter);
+                objRect = CenterRectOnPoint(objRect,v.objCenter(1),v.objCenter(2));
+
+            end
+        
+%            backSource = mod(backSource, 2*barsWidth)+backSourceOri;
+        end
+        if exitFlag
+            break;
+        end
+    end
+    FinishExperiment();
+    
+catch
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+end %try..catch..
+end
+
+function v = ChangeSelection(selection, v, UpDown, delayFlag)
+    text = fieldnames(v);
+
+    switch text{selection}
+        case 'contrast'
+            v.contrast = v.contrast + .01*UpDown;
+            if v.contrast < 0
+                v.contrast = 0;
+            elseif v.contrast > 1
+                v.contrast = 1;
+            end
+        case 'diameter'   % change v.diameter
+            v.diameter = v.diameter + UpDown * 1;
+        case 'objCenter'   % change v.objCenter
+            % delayFlag is 1 if pressed Up/Down arrows and is 0 if
+            % left/right arrows
+            if (delayFlag)
+                v.objCenter = v.objCenter + [0 1]*UpDown;
+            else
+                v.objCenter = v.objCenter + [1 0]*UpDown;
+            end
+        case 'backMode'   % change v.backMode
+            if (v.backMode == 1)
+                v.backMode = v.backTex+1;
+            else
+                v.backMode = 1;
+            end
+        case 'meanIntensity'  % hange v.meanIntensity
+            v.meanIntensity = v.meanIntensity + UpDown * 1;
+            if (v.meanIntensity < 0)
+                v.meanIntensity = 0;
+            elseif (v.meanIntensity > 255)
+                v.meanIntensity = 255;
+            end
+        case 'backAngle'  % hange v.backAngle
+            v.backAngle = v.backAngle + UpDown * 1;
+            if (mod(v.backAngle, 360)==0 )
+                v.backAngle = 0;
+            end
+        case 'backTex'  % back tex
+            v.backTex = mod(v.backTex,10)+1;
+            % if backMode is not still, update the background step
+            delayFlag = 1;
+            if (v.backMode > 1)
+                v.backMode = v.backTex+1;
+            end
+    end
+    if (delayFlag && selection~=3)
+        pause(0.5);
+    end
+end
+
+function p=ParseInput(varargin)
+    v.contrast = p.addParamValue('objContrast', .03, @(x) x>=0 && x<=1);
+    v.diameter = p.addParamValue('diameter', 12*PIXELS_PER_100_MICRONS, @(x) isnumeric(x));
+    
+    backContrast = p.addParamValue('backContrast', .03, @(x) x>=0 && x<=1);
+    backContrast = p.Results.backContrast;
+    
+    presentationLength = 1;
+    debugging = p.Results.debugging;
+    barsWidth = p.Results.barsWidth;
+    waitframes = p.Results.waitframes;
+        
+    % Redefine the stimSize to incorporate an integer number of bars
+    stimSize = ceil(stimSize/barsWidth)*barsWidth;
+
+end

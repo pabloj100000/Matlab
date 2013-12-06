@@ -1,0 +1,33 @@
+function x = GetPinkNoise2(framesN, contrast, meanLuminance, seed, plotFlag)
+    % Generate a noise wave with 'pink like characterisitics'
+    %
+    %   Start by constructing a white noise sequence and then in Fourier
+    %   space multiply by 1/sqrt(freq).
+    %   After converting back into real space I smooth to compute the
+    %   running mean and compute the standard deviation fr
+    %   scaling the high and lo frequency independently to match the given
+    %   contrasts
+    Add2StimLogList();
+    
+    S1 = RandStream('mcg16807', 'Seed',seed);
+    xOri = randn(S1, framesN, 1);
+
+    NFFT = 2^nextpow2(framesN); % Next power of 2 from length of y
+    Y = fft(xOri,NFFT)/framesN;
+    f = 1/2*linspace(0,1,NFFT);
+
+    Y = Y./sqrt(f'+.00001);
+    x = real(ifft(Y));
+    x(framesN+1:end)=[];
+
+    length=31;
+    Xmean = smooth(x, length);  % smoothing box is centered on the point
+    Xmean = circshift(Xmean, (length-1)/2);
+
+    Xstd = std(x-Xmean);
+    x = ((x-Xmean)*contrast*meanLuminance/Xstd)+Xmean+meanLuminance;    
+
+    if plotFlag
+        AnalyseNoise(x)
+    end
+end

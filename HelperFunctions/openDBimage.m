@@ -1,0 +1,21 @@
+function buf = openDBimage(num)
+    Add2StimLogList();
+%{
+for i=60:60
+    file = ['imk000', num2str(i), '.iml'];
+    f1=fopen(file,'rb','ieee-be');
+    w=1536;h=1024;
+    buf=fread(f1,[w,h],'uint16');
+    colormap(gray);
+    imagesc(buf');
+    pause(1)
+end
+%}
+    file = ['imk000', num2str(num), '.iml'];
+    f1=fopen(file,'rb','ieee-be');
+    w=1536;h=1024;
+    buf=fread(f1,[w,h],'uint16');
+    figure
+    colormap(gray);
+    imagesc(buf');
+%38, 46, 52, 54

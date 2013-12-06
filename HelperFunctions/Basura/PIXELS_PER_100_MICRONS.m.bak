@@ -1,0 +1,3 @@
+function pixels = PIXELS_PER_100_MICRONS
+    pixels=18;
+end

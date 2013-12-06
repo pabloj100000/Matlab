@@ -1,0 +1,1 @@
+InitScreen(0)

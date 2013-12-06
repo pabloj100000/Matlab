@@ -1,0 +1,101 @@
+function BackgroundRF(varargin)
+    % if you want to change a parameter from its default value you have to
+    % type 'paramToChange', newValue, ...
+    % List of possible params is:
+    % checkersContrast, objJitterPeriod, objSeed, stimSize, objSizeH, objSizeV,
+    % objCenterXY, backContrast, backJitterPeriod, presentationLength,
+    % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
+
+    global vbl screen pd
+    if isempty(vbl)
+        vbl=0;
+    end
+    
+    if isempty(pdStim)
+        pdStim=1;
+    end
+
+    p=ParseInput(varargin{:});
+
+    seed  = p.Results.objSeed;
+    movieDurationSecs = p.Results.movieDurationSecs;
+    stimSize = p.Results.stimSize;
+    debugging = p.Results.debugging;
+    checkerSize = p.Results.barsWidth;
+    waitframes = p.Results.waitframes;
+    objCenterXY = p.Results.objCenterXY;
+    objSizeH = p.Results.objSizeH;
+    objSizeV = p.Results.objSizeV;
+    objColor = p.Results.color;
+    checkersContrast = p.Results.backContrast;
+
+try
+     InitScreen(debugging);
+
+    checkersN_H = ceil(stimSize/checkerSize);
+    checkersN_V = checkersN_H;
+    
+    % Define the back Destination Rectangle
+    backRect = SetRect(0,0, checkersN_H, checkersN_V)*checkerSize;
+    backRect = CenterRect(backRect, screen.rect);
+
+    % Define the object Rectangle
+    objRect = SetRect(0,0, objSizeH, objSizeV);
+    objRect = CenterRect(objRect, screen.rect);
+    objRect = OffsetRect(objRect, objCenterXY(1), objCenterXY(2));
+    
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+        pd = DefinePD();
+    end
+    
+    % We run at most 'framesN' if user doesn't abort via
+    % keypress.
+    framesN = uint32(movieDurationSecs*screen.rate);
+    frame = 0;
+    
+    % init random seed generator
+    S1 = RandStream('mcg16807', 'Seed',seed);
+    
+    % Animationloop:
+    while (frame < framesN) & ~KbCheck %#ok<AND2>
+
+
+        
+        % CENTER REGION
+        % ------ ------
+        % Make and display obj texture
+        backColor = (rand(S1, checkersN_H, checkersN_V)>.5)*2*screen.gray*checkersContrast...
+            + screen.gray*(1-checkersContrast);
+        backTex  = Screen('MakeTexture', screen.w, backColor);
+        Screen('DrawTexture', screen.w, backTex, [], backRect, 0, 0);
+
+        % After drawing, we have to discard the noise checkTexture.
+        Screen('Close', backTex);
+
+        % Display the uniform constant box in the object region
+        Screen('FillRect', screen.w, objColor, objRect);
+        
+        % PD
+        % --
+        % Draw the PD box
+        DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+
+        
+        % Flip 'waitframes' monitor refresh intervals after last redraw.
+        vbl = Screen('Flip', screen.w, vbl + (waitframes - 0.5) * screen.ifi);
+        frame = frame + waitframes;
+    end;
+    
+    FinishExperiment();
+    
+catch
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+end %try..catch..
+end
+
+
+

@@ -1,0 +1,23 @@
+function FinishExperiment()
+    % only execute this code if the calling function (the one above
+    % this one in the stack) is the 1st function that initialized the
+    % screen. 
+    global screen
+    
+    s = dbstack('-completenames');
+    if (strcmp(screen.callingFunction, s(2).file))
+        
+        clear Screen
+        clear global
+        clear global expLog
+        clear global screen
+        Screen('CloseAll');         % Close all open onscreen and offscreen
+        % windows and textures, movies and video
+        % sources. Release nearly all ressources.
+        Priority(0);
+        ShowCursor();
+    end
+end
+
+
+

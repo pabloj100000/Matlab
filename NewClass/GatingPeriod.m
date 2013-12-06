@@ -1,0 +1,131 @@
+function [periodSeed objSeeds] = GatingPeriod(varargin)
+% Wrapper to call JitterBackTex_JitterObjTex
+%
+% Divide the screen in object and background.
+% Object will be a given texture changing phases every so often.
+% Back will be a grating of a giving contrast and spatial frequency
+% that reverses periodically at backReverseFreq.
+global screen
+
+InitScreen(0);
+    Add2StimLogList();
+
+%%%%%%%%%%%%%% Input Parser Start %%%%%%%%%%%%%%%%
+p  = inputParser;   % Create an instance of the inputParser class.
+
+p.addParamValue('objRect', GetRects(12*PIXELS_PER_100_MICRONS, screen.center), @(x) size(x,2)==4);
+p.addParamValue('pdStim', 105, @(x) isnumeric(x));
+p.addParamValue('checkSize', PIXELS_PER_100_MICRONS/2, @(x) x>0);
+p.addParamValue('backPattern', 1, @(x) x==1 || x==0);   % 0 for bars
+                                                        % 1 for checkers
+p.addParamValue('objSeeds', ones(1, 6), @(x) isnumeric(x));
+p.addParamValue('objContrast', .03, @(x) x>=0 && x<=1);
+p.addParamValue('blocksN', 2, @(x) x>0);
+p.addParamValue('trialsPerBlock', 100, @(x) x>0);
+p.addParamValue('periodSeed', 1, @(x) isnumeric(x));
+
+p.parse(varargin{:});
+
+objRect = p.Results.objRect;
+backPattern = p.Results.backPattern;
+pdStim = p.Results.pdStim;
+checkSize = p.Results.checkSize;
+objSeeds = p.Results.objSeeds;
+objContrast = p.Results.objContrast;
+blocksN = p.Results.blocksN;
+trialsPerBlock = p.Results.trialsPerBlock;
+periodSeed = p.Results.periodSeed;
+%%%%%%%%%%%%%% Input Parser Ends %%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%% Constants %%%%%%%%%%%%%%%%
+stimSize = floor(screen.rect(4)/PIXELS_PER_100_MICRONS)*PIXELS_PER_100_MICRONS;
+objMean = 127;
+backTex = GetCheckersTex(stimSize+checkSize, checkSize, 1);
+
+% set the seed for the sequence of periods
+periodStream = RandStream('mcg16807', 'Seed', periodSeed);
+
+i=0:3;
+backPeriod = [0 -2 0.25*2.^i];        % 0  still
+                                      % <0 FEM
+                                      % >0 Saccade
+
+try
+
+    for i=1:blocksN
+        % chose the order of the background period
+        backPeriodIndex = randperm(periodStream, length(backPeriod));
+%{
+        if (exist('backSeq','var')~=1)
+            clear Screen
+            backSeq = ones(1,100);
+        end
+        backSeq(1+(i-1)*10:i*10) = backPeriodIndex;
+%}
+%
+        for j=1:length(backPeriod)
+            % Update seed for period i
+            trialSeed = objSeeds(backPeriodIndex(j));
+            
+            if backPeriod(backPeriodIndex(j))==0
+                % ctrl case, no background
+                backMode = [0 0 0 1];   % still
+                presentationLength = trialsPerBlock/2;
+                movieDurationsSecs = presentationLength;
+                backReverseFreq = 1;
+            elseif backPeriod(backPeriodIndex(j)) < 0
+                backMode = [1 0 0 0];   % repeats FEM seq
+                trialBackPeriod = backPeriod(backPeriodIndex(j))*-1;
+                presentationLength = trialBackPeriod;
+                movieDurationsSecs = trialsPerBlock*presentationLength;
+            else
+                
+                backMode = [0 0 1 0];   % saccading
+                trialBackPeriod = backPeriod(backPeriodIndex(j));
+                presentationLength = trialsPerBlock*trialBackPeriod;
+                movieDurationsSecs = presentationLength;
+                backReverseFreq = 1/trialBackPeriod;
+            end
+            
+            returnedSeed = UFlickerObj(...
+                'backMode', backMode, ...
+                'presentationLength', presentationLength, ...
+                'movieDurationSecs', movieDurationsSecs, ...
+                'backJitterPeriod', presentationLength, ...
+                'backReverseFreq', backReverseFreq, ...
+                'stimSize', stimSize, ...
+                'objSeed', trialSeed, ...
+                'objContrast', objContrast, ...
+                'objMean', objMean, ...
+                'backTexture', backTex, ...
+                'barsWidth', checkSize, ...
+                'rects', objRect, ...
+                'pdStim', pdStim, ...
+                'backPattern', backPattern);
+            
+            objSeeds(backPeriodIndex(j)) = returnedSeed;
+            if (KbCheck)
+                break
+            end
+        end
+%}
+        if (KbCheck)
+            break
+        end
+    end
+    
+    periodSeed = periodStream.State;
+    % After drawing, we have to discard the noise checkTexture.
+    Screen('Close', backTex{1});
+    FinishExperiment();
+    
+catch exception
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+    rethrow(exception)
+end %try..catch..
+end
+
+

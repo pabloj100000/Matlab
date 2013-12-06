@@ -1,0 +1,20 @@
+function LoadIm(file, meanIntensity, contrast)
+    % load the image in file and change it so that it will have the given
+    % mean and contrast
+    
+    % load file
+    im0 = imread(file);
+    
+    % convert it to 1D
+    im1 = mean(im0, 3);
+    size(im1,1)
+    size(im1,2)
+    size(im1)
+    im2 = reshape(im1, 1, size(im1,1)*size(im1,2));
+    
+    % change pixel intensity to have meanIntensity and contrast
+    oldMean = mean(im2);
+    oldSigma = std(im2);
+    im2 = im2 - oldMean + meanIntensity;
+    
+end

@@ -1,0 +1,4 @@
+function returnSeed = UFlickerObj_Sxx(varargin)
+    Add2StimLogList();
+    UFlickerObj_xSx();
+end

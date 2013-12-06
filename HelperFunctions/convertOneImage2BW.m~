@@ -1,0 +1,123 @@
+function convertOneImage2BW(image, sizeOut)
+    % image, a string with a partial or full path to the image
+    % sizeOut, an array with [x y] size in pixels
+    %
+    % 1. Make image sizeOut pixels
+    % 2. Make them grayscale, 8 bit.
+    % 3. Meanless
+    % 4.    I'm computing the contrast per pixel but not doing anything with
+    %       it yet.
+
+    [~, ~, ext] = fileparts(image);
+    if strcmpi(ext, '.jpg')
+        % load the image
+        im = imread([folderIn,files(i).name]);
+        % limit images to be squared of a given size
+        startX = floor((size(im,1)-sizeOut)/2);
+        if (startX==0)
+            startX=1;
+        end
+        startY = floor((size(im,2)-sizeOut)/2);
+        if (startY==0)
+            startY=1;
+        end
+        tempIm = im(startX:startX+sizeOut-1, startY:startY+sizeOut-1,:);
+        %            tempIm = im(round(1:size(im,1)/sizeOut:size(im,1)), round(1:size(im,2)/sizeOut:size(im,2)),:);
+        
+        % convert to balck and white
+        newIm = rgb2gray(tempIm);
+        
+        % subtract the mean. (Can not do it if format is unit8)
+        newIm = uint8(int16(newIm) - mean(mean(newIm))+127);
+        
+        figure(1)
+        imshow(im)
+        figure(2)
+        imshow(tempIm);
+        figure(3)
+        imshow(newIm)
+        
+        % If a random jitter is given, compute the temporal contrast per
+        % pixel and average spatially.
+        switch nargin
+            case 1
+                jitter = varargin{1};
+                showFlag = 0;
+            case 2
+                jitter = varargin{1};
+                showFlag = varargin{2};
+        end
+        
+        if (nargin)
+            pixelContrast = GetPixelsinTime(newIm, jitter);
+            if (showFlag)
+                figure(1)
+                imshow(newIm)
+                figure(2)
+                imshow(pixelContrast)
+                figure(3)
+                imshow(tempIm)
+            end
+        end
+        % Save the new image
+        imwrite(newIm,[folderOut, files(i).name], 'jpg', 'Bitdepth', 8);
+        
+    end
+end
+end
+
+
+function pixelContrast = GetPixelsinTime(newIm, jitter)
+% I will make a 3D array that represents each pixel in time.
+    % s: source, refers to the newIm coordinates
+    % d: destination, refers to coordinates in the newly created timePixels
+    % array.
+    
+    timePixels = uint8(ones(size(newIm,1), size(newIm,2), length(jitter)))*mean(mean(newIm));
+    startX = 0;
+    startY = 0;
+    for i=1:length(jitter)
+        startX = startX + jitter(1, i);
+        startY = startY + jitter(2, i);
+        if (startX<1)
+            d_firstX = 1;
+            s_firstX = 2-startX;
+            d_endX = size(newIm,1) + startX -1;
+            s_endX = size(newIm,1);
+        else
+            d_firstX = startX;
+            s_firstX = 1;
+            d_endX = size(newIm,1);
+            s_endX = size(newIm,1)-startX+1;
+        end
+        if (startY<1)
+            d_firstY = 1;
+            s_firstY = 2-startY;
+            d_endY = size(newIm,1) + startY -1;
+            s_endY = size(newIm,1);
+        else
+            d_firstY = startY;
+            s_firstY = 1;
+            d_endY = size(newIm,1);
+            s_endY = size(newIm,1)-startY+1;
+        end
+        
+        timePixels(d_firstY:d_endY, d_firstX:d_endX,i) = newIm(s_firstY:s_endY, s_firstX:s_endX);
+    end
+    
+    % compute the contrast per pixel
+    timePixels = single(timePixels);
+    pixelContrast = std(timePixels, 0, 3)./mean(timePixels, 3);
+
+    % why is next line not equivalent to the previous one?
+%    pixelContrast = std(timePixels, 0, 3)./(255-mean(timePixels, 3));
+
+    % next line tries to make previous once symetric but is
+    % counterintuitive. The closer the pixel to the mean, the stronger the
+    % stimulus gets instead of getting weaker.
+%    pixelContrast = std(timePixels, 0, 3)./abs(127-mean(timePixels, 3));
+
+    % nect lines tries to combine std and difference from teh mean.
+%    pixelContrast = std(timePixels, 0, 3).*abs(127-mean(timePixels, 3))/127;
+
+end

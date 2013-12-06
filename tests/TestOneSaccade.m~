@@ -1,0 +1,13 @@
+function TestOneSaccade()
+    global screen
+    InitScreen(0);
+    
+    im = imread('../NaturalScenes/image0.jpg');
+    tex = Screen('MakeTexture', screen.w, im);
+    Screen('DrawTexture', screen.w, tex);
+    Screen('Flip', screen.w);
+    pause(1)
+    ONeSaccade(tex, size(im));
+    Screen('Close', tex)
+    FinishExperiment();
+end

@@ -1,0 +1,33 @@
+function nextRun()
+
+try
+    Add2StimLogList();
+%    Wait2Start()
+
+%    RF('movieDurationSecs', 1200)
+    pause(.2)
+    
+    
+    for (i=0:10)
+        if (i==0)
+            peripheryIndex = -1;
+        else
+            peripheryIndex = 5;
+        end
+        SaccadesAndFEM('alpha', .05*i, 'presentationLength', 2, 'peripheryIndex', peripheryIndex);
+        
+        if (KbCheck)
+            break
+        end
+    end
+% }
+    FinishExperiment();
+    
+catch exception
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    rethrow(exception)
+end %try..catch..
+
+end

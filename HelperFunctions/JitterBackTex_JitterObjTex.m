@@ -1,0 +1,91 @@
+function JitterBackTex_JitterObjTex(backSeq, objSeq, ...
+    waitframes, framesN, backTex, objTex, pdStim, varargin)
+    % Screen is divided in background and object.
+    % background will display the given texture and will jitter it around
+    % as specified by backSeq.
+    % object will display the given texture and will jitter it around
+    % as specified by objSeq.
+    % The time of the presentation comes in through framesN and if it is
+    % longer than either backSeq or objSeq, then the jitter or the objSeq
+    % sequences are repeated as many times as needed. In this way you can
+    % have either:
+    %   one background and one object
+    %   one background with different objects
+    %   different backgrounds with one object
+    %
+    % This procedure can also be used for reverse grating backgrounds, just
+    % define the background to be the grating texture and define backSeq
+    % to something like backSeq = [J 0 0 0 0 0 0 0 0 -J 0 0 0 0 0 0 0 0]
+    % were the J is the size of the jump and the 0s are the frames where
+    % the background is still
+    % backSeq:    an array describing how many pixels to jump
+    %               at each frame (+ to the right, - to the left)
+    % objSeq:       the intensities to display in the Uniform Field obj
+    % screen:       the usual screen struct.
+    % waitFrames:   how often is the Flip going to be called?
+    %               in general this will be either 1 or 2
+    % framesN:      frames/screen.rate = totalLength of the presentation
+    % backTex:      the texture to show in the background.
+    % backRect:     where to display the background
+    % backSource:   what part of the texture to display
+    % objRect:      where to display the object
+    % vbl:          time of last flip call
+    % pd:           PD box definition
+    % varargin:     period of back texture. Used for recentering and avoid
+    %               sliding
+    global vbl screen backRect backSource objRect objSource pd
+    Add2StimLogList();
+
+    % init the frame counter
+    frame = 0;
+    
+    if (size(varargin,2))
+        backPeriod = varargin{1};
+        backRectOri = backRect;
+        objRectOri = objRect;
+        recenterFlag = 1;
+    else
+        recenterFlag = 0;
+    end
+    
+    backSeqN = size(backSeq,2);
+    objSeqN = size(objSeq, 2);
+    
+    for frame=0:framesN-1
+        if (mod(frame, waitframes)==0)
+            % Background Drawing
+            % ---------- -------
+            backIndex = mod(frame/waitframes, backSeqN)+1;
+            backRect = backRect + backSeq(backIndex)*[1 0 1 0];
+            
+            if (recenterFlag)
+                backRect = mod(backRect, 2*backPeriod)+backRectOri;
+            end
+            Screen('DrawTexture', screen.w, backTex, backSource, backRect, 0,0);
+            
+            % Object Drawing
+            % --------------
+            objIndex = mod(frame/waitframes, objSeqN)+1;
+            %        objShiftRect = objShiftRect + objSeq(objIndex)*[1 0 1 0];
+            %        objSource = objSource + objSeq(objIndex)*[1 0 1 0];
+            objRect = objRect + objSeq(objIndex)*[1 0 1 0];
+            if (recenterFlag)
+                objRect = mod(objRect, 2*backPeriod)+objRectOri;
+            end
+            %        Screen('DrawTexture', screen.w, objTex, objSource + objShiftRect, objRect, 0,0);
+            Screen('DrawTexture', screen.w, objTex, objSource, objRect, 0,0);
+        end
+        
+        % Photodiode box
+        % --------------
+        DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+
+        % Flip 'waitframes' monitor refresh intervals after last redraw.
+        vbl = Screen('Flip', screen.w, vbl  + 0.5 * screen.ifi);
+        
+        if (KbCheck)
+            break
+        end
+    end
+end
+

@@ -1,0 +1,44 @@
+function [tex contrast]= GetGaborText2(imSize, lambda, sigma, phase, contrast)
+global screen
+
+
+%imSize = 100;                           % image size: n X n
+%lambda = 10;                            % wavelength (number of pixels per cycle)
+%sigma = 10;                             % gaussian standard deviation in pixels
+%phase = .0;                             % phase (0 -> 1)
+%contrast=1;
+
+%make linear ramp
+X = 0:imSize;                           % X is a vector from 1 to imageSize
+X0 = (X / imSize) - .5;                 % rescale X -> -.5 to .5
+
+%mess about with wavelength and phase
+freq = imSize/lambda;                    % compute frequency from wavelength
+phaseRad = (phase * 2* pi);             % convert to radians: 0 -> 2*pi
+
+%Put 2D ramps through sine
+Xf = X0 * freq * 2*pi;
+sinusoidal = sin( Xf + phaseRad);          % make 2D sinewave
+
+%Make a gaussian mask
+%Make 2D gaussian blob
+gauss1D = normpdf(Xf,0,sigma);%/imSize);
+
+grating = gauss1D'*(sinusoidal.*gauss1D);
+grating = grating/max(max(grating));
+
+grating = round(127+contrast*127*grating);
+maximum = max(max(grating));
+minimum = min(min(grating));
+contrast = (maximum-minimum)/(maximum+minimum);
+
+if (contrast>1)
+    error('contrast has to be between 0 and 1');
+end
+   
+
+if (isfield(screen, 'w'))
+    tex = Screen('MakeTexture', screen.w, grating);
+else
+    tex = [];
+end

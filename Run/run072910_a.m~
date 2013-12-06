@@ -1,0 +1,20 @@
+function run081810_a()
+CreateStimuliLogStart();
+
+Wait2Start()
+RF('movieDurationSecs', 900, 'barsWidth',16, 'objContrast',1);
+
+% Make sure long range connections are OK by running some
+% differential/Global motion
+function LowContrastObj_SxF(varargin)
+
+
+UFlickerObj_SSF( ...
+    'objContrast', objC, ...
+    'backContrast', backC, ...
+    'movieDurationSecs', movieDuration, ...
+    'pdStim', j+length(backContrast)*(i-1));
+
+CreateStimuliLogWrite();
+end
+

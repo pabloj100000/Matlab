@@ -1,0 +1,52 @@
+function [exitFlag] = BinaryCheckers(framesN, waitframes, checkersV, checkersH, objContrast, randomStream, pdStim)
+    exitFlag = -1;
+    frame = 0;
+    global vbl screen objRect pd
+    
+    % make a texture so that 1st call to Screen('Close') will not crash
+    objTex = Screen('MakeTexture', screen.w, 0);
+    
+%    while (frame < framesN) & ~KbCheck %#ok<AND2>
+    for frame = 0:framesN-1
+
+        if (mod(frame, waitframes)==0)
+            % CENTER REGION
+            % ------ ------
+            % We have to discard the noise checkTexture.
+            Screen('Close', objTex);
+
+            % Make a new obj texture
+            objColor = (rand(randomStream, checkersH, checkersV)>.5)*2*screen.gray*objContrast...
+                + screen.gray*(1-objContrast);
+            objTex  = Screen('MakeTexture', screen.w, objColor);
+            
+        end
+        
+        % display last texture
+        Screen('DrawTexture', screen.w, objTex, [], objRect, 0, 0);
+
+        % PD
+        % --
+        % Draw the PD box
+        DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+        
+        % uncomment this line to check the coordinates of the 1st checker
+%        test()        
+        % Flip 'waitframes' monitor refresh intervals after last redraw.
+        vbl = Screen('Flip', screen.w, vbl + 0.5 * screen.ifi);
+%        vbl = Screen('Flip', screen.w, vbl + (waitframes - 0.5) * screen.ifi);
+%        frame = frame + waitframes;
+        if (KbCheck)
+            break
+        end
+    end;
+    
+    % Clean last texture displayed
+    Screen('Close', objTex)
+    if (frame >= framesN)
+        exitFlag = 1;
+    end
+end
+
+
+

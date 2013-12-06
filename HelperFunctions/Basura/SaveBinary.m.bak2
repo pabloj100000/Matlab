@@ -1,0 +1,13 @@
+function SaveBinary(obj, precision)
+    % precision has to be a string literal in acordance to what fread wants
+    % use:
+    % 'int8' for small signed numbers
+    % 'uint8' for <256 unsigned numbers
+    % 'int16' etc...
+    
+    nameout = [inputname(1), '.bin'];
+    fid = fopen(nameout, 'w');
+    fwrite(fid, obj, precision);
+    fclose(fid);
+end
+

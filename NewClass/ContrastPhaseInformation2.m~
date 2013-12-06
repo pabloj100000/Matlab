@@ -1,0 +1,236 @@
+function ContrastPhaseInformation2(varargin)
+%   obj and background will both be either bars or checkers of a given
+%   size. The phase and contrast will change over some values.
+% 
+% Divide the screen in object and background.
+% Object will be a given texture changing phases every so often.
+% Back will be a grating of a giving contrast and spatial frequency
+% that reverses periodically at backReverseFreq.
+
+global vbl screen pd
+
+if isempty(vbl)
+    vbl=0;
+end
+
+p=ParseInput(varargin{:});
+
+% object
+objContrasts = p.Results.objContrasts;
+objRect = p.Results.objRect;
+objCheckerSize = p.Results.objCheckerSize;
+objFreq = p.Results.objFreq;
+
+% background
+backContrast = p.Results.backContrast;
+backReverseFreq = p.Results.backReverseFreq;
+backCheckerSize = p.Results.backCheckerSize;
+backAngle = p.Results.angle;
+backPattern = p.Results.backPattern;
+
+% general
+stimSize = p.Results.stimSize;
+debugging = p.Results.debugging;
+movieDurationSecs = p.Results.movieDurationSecs;
+presentationLength = p.Results.presentationLength;
+pdStim = p.Results.pdStim;
+
+try
+    InitScreen(debugging);
+
+    % each presentation will have all possible contrasts.
+    framesPerSec = 60;
+    contrastsN = length(objContrasts);
+    presentationsN = floor(movieDurationSecs/presentationLength/contrastsN);
+        
+    % make the background texture, each checker takes only 1 pixel
+    backCheckersN = round(stimSize/backCheckerSize);
+    if (backPattern)
+        backTex = GetCheckersTex(backCheckersN+1, 1, screen, backContrast);
+    else
+        backTex = GetBarsTex(backCheckersN+1, 1, screen, backContrast);
+    end
+    backSourceOri = [0 0 backCheckersN backCheckersN];
+    backRect=GetRects(stimSize, screen.center);
+    
+    % make the object texture, each checker is one pixel
+    objCheckersN = (objRect(3)-objRect(1))/objCheckerSize;
+    objTex = GetCheckersTex(objCheckersN+1, 1, screen, 1);
+    objSourceOri = [0 0 objCheckersN objCheckersN];
+        
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+       pd = DefinePD();
+    end
+    
+    % make the saccade sequence
+    framesN = presentationLength*framesPerSec;
+    backFramesPeriod = round(framesPerSec/backReverseFreq);
+    objFramePeriod = round(framesPerSec/objFreq);
+
+    % make a pseudo random sequence of contrasts such that 4 consecutive
+    % bits make a # and all 16 numbers between 0 and 15 happen once when
+    % sliding the 4 bit coding window by 1.
+    phaseSeq = [0 1 1 0];
+    stimCoded = '00';
+    
+    phaseIndex = 1;
+    backIndex = 0;
+
+    for presentation=1:presentationsN 
+        for i = 1:contrastsN
+            objContrast = objContrasts(mod(i, length(objContrasts)));
+            for frame=0:framesN-1
+                
+                % is it time to change the phase of the center?
+                if (mod(frame, objFramePeriod)==0)
+                    objSource = objSourceOri + phaseSeq(phaseIndex)*[1 0 1 0];
+                    stimCoded = [stimCoded(2:end),dec2bin(phaseSeq(phaseIndex),1)];
+                    phaseIndex = mod(phaseIndex, size(phaseSeq,2))+1;                    
+                end
+                
+                % is it time to reverse the background?
+                if (mod(frame, backFramesPeriod/2)==0)
+                    backSource = backSourceOri+backIndex*[1 0 1 0];
+                    backIndex = mod(backIndex+1,2);
+                    pdStim = bin2dec(stimCoded);
+
+                    if ~exist('A', 'var')
+                        A = ones(1,length(phaseSeq));
+                    end
+                    if (frame > 0 && mod(frame, backFramesPeriod)==0)
+                        A(mod(frame/backFramesPeriod-1,length(phaseSeq))+1)=bin2dec(stimCoded);
+                    end
+%}
+                end
+% {
+                Screen('FillRect', screen.w, screen.gray);
+                            
+                % Disable alpha-blending, restrict following drawing to alpha channel:
+                Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [0 0 0 1]);
+                
+                % Clear 'dstRect' region of framebuffers alpha channel to zero:
+                %        Screen('FillRect', screen.w, [0 0 0 0], backRect);
+                Screen('FillRect', screen.w, [0 0 0 0]);
+                
+                % Fill circular 'dstRect' region with an alpha value of 255:
+                Screen('FillOval', screen.w, [0 0 0 255], backRect);
+                
+                % Enable DeSTination alpha blending and reenalbe drawing to all
+                % color channels. Following drawing commands will only draw there
+                % the alpha value in the framebuffer is greater than zero, ie., in
+                % our case, inside the circular 'dst2Rect' aperture where alpha has
+                % been set to 255 by our 'FillOval' command:
+                Screen('Blendfunction', screen.w, GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA, [1 1 1 1]);
+
+                % display background texture
+                Screen('DrawTexture', screen.w, backTex{1},backSource,backRect, backAngle, 0);
+
+                % Restore alpha blending mode for next draw iteration:
+                Screen('Blendfunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+                % Draw object
+                Screen('FillRect', screen.w, screen.gray, objRect);
+
+                Screen('DrawTexture', screen.w, objTex{1}, objSource, objRect, 0, 0, objContrast);
+                
+                % Restore alpha blending mode for next draw iteration:
+                Screen('Blendfunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                
+                % Photodiode box
+                % --------------
+                DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+                
+                Screen('Flip', screen.w);
+%}
+                if (KbCheck)
+                    break
+                end
+                
+            end
+            if (KbCheck)
+                break
+            end
+        end
+%}
+        if (KbCheck)
+            break
+        end
+
+    end
+    
+    % After drawing, we have to discard the noise checkTexture.
+    Screen('Close', backTex{1});
+    Screen('Close', objTex{1});
+
+    FinishExperiment();
+    
+catch
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+end %try..catch..
+end
+
+function p =  ParseInput(varargin)
+    % Generates a structure with all the parameters
+    % Allowed parameters are:
+    %
+    % objContrast, objJitterPeriod, contrastSeed, stimSize, objSizeH, objSizeV,
+    % objCenterXY, backContrast, backJitterPeriod, presentationLength,
+    % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
+
+    % In order to get a parameter back just use
+    %   p.Resulst.parameter
+    % In order to display all the parameters use
+    %   disp 'List of all arguments:'
+    %   disp(p.Results)
+    %
+    % General format to add inputs is...
+    % p.addRequired('script', @ischar);
+    % p.addOptional('format', 'html', ...
+    %     @(x)any(strcmpi(x,{'html','ppt','xml','latex'})));
+    % p.addParamValue('outputDir', pwd, @ischar);
+    % p.addParamValue('maxHeight', [], @(x)x>0 && mod(x,1)==0);
+
+    p  = inputParser;   % Create an instance of the inputParser class.
+
+    
+    % General
+    p.addParamValue('stimSize', 768, @(x)x>0);
+    p.addParamValue('presentationLength', 10, @(x)x>0);
+    p.addParamValue('movieDurationSecs', 1600, @(x)x>0);
+    p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
+    p.addParamValue('waitframes', 1, @(x)isnumeric(x)); 
+    p.addParamValue('vbl', 0, @(x)x>0);
+    p.addParamValue('pdStim', 100, @(x) isnumeric(x));
+
+    % Object related
+    p.addParamValue('objContrasts', [.05 35], @(x) all(all(x>=0)) && all(all(x<=1)));
+    p.addParamValue('objTexture', [], @(x) iscell(x));
+    p.addParamValue('objRect', [0 0 192 192], @(x) size(x,2)==4);
+    p.addParamValue('objFreq', 5, @(x) x>0);
+    p.addParamValue('objOffset', 0, @(x) isnumeric(x));
+    p.addParamValue('objCheckerSize', 192, @(x) x>0);
+    p.addParamValue('phaseSeq', [], @(x) isnumeric(x));
+    
+    % Background related
+    p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
+    p.addParamValue('backReverseFreq', 1, @(x) x>0);
+    p.addParamValue('backTexture', [], @(x) iscell(x));
+    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
+    p.addParamValue('backRect', GetRects(768, [screenX screenY]/2), @(x) isnumeric(x) && size(x,2)==4);
+    p.addParamValue('backCheckerSize', 16, @(x) x>0);
+    p.addParamValue('angle', 0, @(x) x>=0);
+    p.addParamValue('backPattern', 0, @(x) x==0 || x==1);
+    p.addParamValue('barsWidth', 16, @(x) x>0);
+    
+    % Call the parse method of the object to read and validate each argument in the schema:
+    p.parse(varargin{:});
+    
+end
+
+
+

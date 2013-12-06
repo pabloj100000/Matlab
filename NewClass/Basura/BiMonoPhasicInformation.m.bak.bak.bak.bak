@@ -1,0 +1,263 @@
+function BiMonoPhasicInformation(varargin)
+    % Stimulus is divided in object and background
+    % object is changing intensity between LO and HI at a given mean and
+    % contrast (Michelson contrast) every 0.1 s
+    % The mean and contrast are picked randomly from objMeans and
+    % objContrasts which default to [50 100 150 200] and [0 .1 .2 .3]
+    % respectively.
+    % The total number of combinations is objectsN = contrastsN*measN
+
+    global vbl screen backRect backSource objRect pd
+    if isempty(vbl)
+        vbl=0;
+    end
+    
+    
+    p=ParseInput(varargin{:});
+
+
+    stimSize = p.Results.stimSize;
+    presentationLength = p.Results.presentationLength;
+    movieDurationSecs = p.Results.movieDurationSecs;
+    waitframes = p.Results.waitframes;
+    vbl = p.Results.vbl;
+    pdStim = p.Results.pdStim;
+    
+    objSeed  = p.Results.objSeed;
+    objContrasts = p.Results.objContrasts;
+    objMeans = p.Results.objMeans;
+    objRect = p.Results.objRect;
+    objFreq = p.Results.objFreq;
+    
+    backContrast = p.Results.backContrast;
+    backReverseFreq = p.Results.backReverseFreq;        % for reversing
+    backTex = p.Results.backTexture;
+    backRect = p.Results.backRect;
+    backCheckerSize = p.Results.backCheckerSize;
+    backAngle = p.Results.angle;
+    backPattern = p.Results.backPattern;
+
+    contrastsN = length(objContrasts);
+    meansN = length(objMeans);
+    objectsN = meansN*contrastsN;
+    movieDurationSecs = floor(movieDurationSecs/objectsN/presentationLength)...
+        *objectsN*presentationLength;
+try
+    InitScreen(0);
+    
+    % make the background texture
+    if (isempty(backTex))
+        checkersN = stimSize/backCheckerSize;
+        if (backPattern)
+            backTex = GetCheckersTex(checkersN+1, 1, backContrast);
+        else
+            backTex = GetBarsTex(checkersN+1, 1, backContrast);
+        end
+    end
+    backSourceOri = SetRect(0,0,checkersN, checkersN);
+    
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+        pd = DefinePD();
+    end
+    
+    framesPerSec = 60/waitframes;
+
+    % We run at most 'presentationsN' if user doesn't abort via
+    % keypress.
+    presentationsN = uint32(movieDurationSecs/presentationLength);
+    
+    
+    framesN = uint32(presentationLength*screen.rate);
+
+    % make a random sequence of objects to display. I want to display all
+    % 'objectsN' objects before repeating one. Therefore I randomize groupd
+    % of 'objectsN' at a time.
+    objStimSeq = zeros(objectsN, ceil(presentationsN/objectsN));
+    S1 = RandStream('mcg16807', 'Seed', objSeed);
+    for i=1:presentationsN/objectsN
+        objStimSeq(:, i) = randperm(S1, objectsN);
+    end
+    objStimSeq = reshape(objStimSeq, 1, presentationsN);
+    clear S1;
+    
+    
+    backReverseFrames = framesPerSec/backReverseFreq/2;
+    
+    objReverseFrames = framesPerSec/objFreq/2;
+
+    % Animationloop:
+    for presentation = 1:presentationsN
+        % Background Drawing
+        % ------------------
+        object = objStimSeq(presentation)-1;
+
+        meanIndex = floor(object/meansN)+1;
+        objMean = objMeans(meanIndex);
+        
+        contrastIndex = mod(object, contrastsN)+1;
+        objContrast = objContrasts(contrastIndex);
+
+        % Michelson contrast is (Hi-Lo)/(Hi+Lo) = (Hi-Lo)/(2*mean)
+        % also, Hi-Lo = 2*?, where ? is the deviation of Hi (and Lo) from
+        % the mean.
+        % => contrast = ?/mean
+        %   => Hi = mean*(1 + contrast)
+        %   => Lo = mean*(1 - contrast)
+        intensityLo = round(objMean*(1 - objContrast));
+        intensityHi = round(objMean*(1 + objContrast));
+        
+        if (intensityLo<0)
+            intensityLo=0;
+        end
+        if (intensityHi>255)
+            intensityHi=255;
+        end
+        
+        %{
+        C = (intensityHi-intensityLo)/(intensityHi+intensityLo);
+        M = (intensityHi+intensityLo)/2;
+        [C M]
+        %}
+        
+        frame = 0;
+        backShift = 0;
+        colorIndex = 0;
+        while (frame < framesN) && ~KbCheck
+            % Background Drawing
+            % ---------- -------
+            if (mod(frame, backReverseFrames)==0)
+                backSource = backSourceOri + backShift*[1 0 1 0];
+                backShift = mod(backShift+1, 2);
+            end
+
+            % Fill background with gray
+            Screen('FillRect', screen.w, screen.gray);
+            
+            % Disable alpha-blending, restrict following drawing to alpha channel:
+            Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [0 0 0 1]);
+            
+            % Clear 'dstRect' region of framebuffers alpha channel to zero:
+            %        Screen('FillRect', screen.w, [0 0 0 0], backRect);
+            Screen('FillRect', screen.w, [0 0 0 0], screen.rect);
+            
+            % Fill circular 'dstRect' region with an alpha value of 255:
+            Screen('FillOval', screen.w, [0 0 0 255], backRect);
+            
+            % Enable DeSTination alpha blending and reenalbe drawing to all
+            % color channels. Following drawing commands will only draw there
+            % the alpha value in the framebuffer is greater than zero, ie., in
+            % our case, inside the circular 'dst2Rect' aperture where alpha has
+            % been set to 255 by our 'FillOval' command:
+            Screen('Blendfunction', screen.w, GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA, [1 1 1 1]);
+            
+            % Draw 2nd grating texture, but only inside alpha == 255 circular
+            % aperture, and at an angle of 90 degrees:
+            Screen('DrawTexture', screen.w, backTex{1}, backSource, backRect, backAngle,0);
+            
+            % Restore alpha blending mode for next draw iteration:
+            Screen('Blendfunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            
+            
+            % Object Drawing
+            % --------------
+            if (mod(frame, objReverseFrames)==0)
+                if mod(colorIndex,2)==0
+                    objColor = intensityLo;
+                else
+                    objColor = intensityHi;
+                end
+                colorIndex = colorIndex+1;
+            end
+            Screen('FillRect', screen.w, objColor, objRect);
+            
+            % Photodiode box
+            % --------------
+            DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+            
+            % Flip 'waitframes' monitor refresh intervals after last redraw.
+            vbl = Screen('Flip', screen.w, vbl + (waitframes - 0.5) * screen.ifi);
+            frame = frame + waitframes;
+        end
+        if (KbCheck)
+            break
+        end
+    end
+ 
+    % After drawing, we have to discard the noise checkTexture.
+    Screen('Close', backTex{1});
+
+    FinishExperiment();
+    
+catch
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+end %try..catch..
+end
+
+
+
+function p =  ParseInput(varargin)
+    % Generates a structure with all the parameters
+    % Allowed parameters are:
+    %
+    % objContrast, objJitterPeriod, objSeed, stimSize, objSizeH, objSizeV,
+    % objCenterXY, backContrast, backJitterPeriod, presentationLength,
+    % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
+
+    % In order to get a parameter back just use
+    %   p.Resulst.parameter
+    % In order to display all the parameters use
+    %   disp 'List of all arguments:'
+    %   disp(p.Results)
+    %
+    % General format to add inputs is...
+    % p.addRequired('script', @ischar);
+    % p.addOptional('format', 'html', ...
+    %     @(x)any(strcmpi(x,{'html','ppt','xml','latex'})));
+    % p.addParamValue('outputDir', pwd, @ischar);
+    % p.addParamValue('maxHeight', [], @(x)x>0 && mod(x,1)==0);    
+    p  = inputParser;   % Create an instance of the inputParser class.
+
+    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
+    screenCenter = [screenX screenY]/2;
+
+    stimSize = floor(SCREEN_SIZE/PIXELS_PER_100_MICRONS)*PIXELS_PER_100_MICRONS;
+    stimSize(1)=[];
+    
+    % General
+    p.addParamValue('stimSize', stimSize, @(x)x>0);
+    p.addParamValue('presentationLength', 45, @(x)x>0);         % 3Hours / (45s *16 objects) = 15 presentations per object
+    p.addParamValue('movieDurationSecs', 3*3600, @(x)x>0);
+    p.addParamValue('waitframes', 1, @(x)isnumeric(x)); 
+    p.addParamValue('vbl', 0, @(x)x>0);
+    p.addParamValue('pdStim', 102, @(x) isnumeric(x));
+    
+    % Background related
+    p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
+    p.addParamValue('backReverseFreq', 1, @(x) x>0);
+    p.addParamValue('backTexture', [], @(x) iscell(x));
+    p.addParamValue('backRect', GetRects(stimSize, [screenX screenY]/2), @(x) isnumeric(x) && size(x,2)==4);
+    p.addParamValue('backCheckerSize', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParamValue('angle', 0, @(x) x>=0);
+    p.addParamValue('backPattern', 0, @(x) x==0 || x==1);
+
+    % Object related
+    p.addParamValue('objSeed', 1, @(x) isnumeric(x));
+    p.addParamValue('objContrasts', [0 .1 .2 .3], @(x) all(all(x>=0)) && all(all(x<=1)));
+    p.addParamValue('objMeans', [50 100 150 200], @(x) all(all(x>=0)) && all(all(x<=255)));
+    p.addParamValue('objTexture', [], @(x) iscell(x));
+    p.addParamValue('objRect', GetRects(12*PIXELS_PER_100_MICRONS, screenCenter), @(x) size(x,2)==4);
+    p.addParamValue('objFreq', 10, @(x) x>0);
+    p.addParamValue('objCheckerSize', PIXELS_PER_100_MICRONS/2, @(x) x>0);
+
+    % Call the parse method of the object to read and validate each argument in the schema:
+    p.parse(varargin{:});
+    
+end
+
+
+
+

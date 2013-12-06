@@ -1,0 +1,184 @@
+function ShiftObject(varargin)
+% Wrapper to call JitterBackTex_JitterObjTex
+%
+% Divide the screen in object and background.
+% Object will be uniform flickering at 3% at different positions
+% Back will be a grating of a giving contrast and spatial frequency
+% that reverses periodically at backReverseFreq.
+
+global vbl screen pd 
+if isempty(vbl)
+    vbl=0;
+end
+
+
+p  = inputParser;   % Create an instance of the inputParser class.
+
+[screenW screenH] = SCREEN_SIZE;
+
+p.addParamValue('backContrast', 1, @(x)x>0);
+p.addParamValue('barsWidth', PIXELS_PER_100_MICRONS/2, @(x) x>0);
+p.addParamValue('presentationLength', 50, @(x) x>0);
+p.addParamValue('stimSize', screenH, @(x) x>0);
+p.addParamValue('waitframes', 1, @(x) x>0);
+p.addParamValue('backReverseFreq', 1, @(x) x>0);
+p.addParamValue('step', PIXELS_PER_100_MICRONS, @(x) x>0);
+p.addParamValue('backAngle', 0, @(x) isnumeric(x));
+p.addParamValue('objContrast', .03, @(x) x>=0 && x<=1);
+p.addParamValue('objSeed', 1, @(x) isnumeric(x));
+p.addParamValue('backTexture', {}, @(x) iscell(x));
+p.addParamValue('backPattern', 0, @(x) x==1 || x==0);   % 0 for bars
+                                                        % 1 for checkers
+p.addParamValue('pdStim', 103, @(x) isnumeric(x));
+                                                        
+p.parse(varargin{:});
+
+backContrast = p.Results.backContrast;
+barsWidth = p.Results.barsWidth;
+backReverseFreq = p.Results.backReverseFreq;
+presentationLength = p.Results.presentationLength;
+movieDurationSecs = 10*presentationLength;
+stimSize = p.Results.stimSize;
+waitframes = p.Results.waitframes;
+step = p.Results.step;
+objContrast = p.Results.objContrast;
+objSeed = p.Results.objSeed;
+backTex = p.Results.backTexture;
+backPattern = p.Results.backPattern;
+angle = p.Results.backAngle;
+pdStim = p.Results.pdStim;
+
+try
+    InitScreen(0);
+    Add2StimLogList();
+    
+    % make the background texture
+    if isempty(backTex)
+        if (backPattern)
+            backTex = GetCheckersTex(stimSize+barsWidth, barsWidth, backContrast);
+        else
+            backTex = GetBarsTex(stimSize+barsWidth, barsWidth, backContrast);
+        end
+        killTexFlag = 1;
+    else
+        killTexFlag = 0;
+    end
+    
+    % Define the background Destination Rectangle
+    backRect = GetRects(stimSize, screen.center);
+    
+    % Define the back source rectangle
+    backSource = SetRect(0,0,stimSize,1);
+    backSourceOri = backSource;
+    
+    % define the obj rect. 
+    objRectOri = GetRects(12*PIXELS_PER_100_MICRONS, screen.center);
+    
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+       pd = DefinePD();
+    end
+
+    % make the jitterSeq corresponding to saccades
+    framesPerSec = screen.rate;
+    framesN = uint32(presentationLength*screen.rate);
+
+    backSeq = zeros(1, framesN);
+    ForJumps = 1:framesPerSec/backReverseFreq/waitframes:framesN;
+    BackJumps = framesPerSec/backReverseFreq/waitframes/2+1:framesPerSec/backReverseFreq/waitframes:framesN;
+    backSeq(ForJumps) = barsWidth;
+    backSeq(BackJumps) = -barsWidth;
+            
+    % We run at most 'consPresentationsN' if user doesn't abort via
+    % keypress.
+    presentationsN = movieDurationSecs/presentationLength;
+    frame = 0;
+    
+    S1 = RandStream('mcg16807', 'Seed', objSeed);
+
+    offset = -2*step;
+    % Animationloop:
+    for i=0:presentationsN-1
+        if i<presentationsN/2
+            objRect = objRectOri + (i*step+offset)*[1 0 1 0];
+        else
+            objRect = objRectOri + ((i-presentationsN/2)*step+offset)*[0 1 0 1];
+        end            
+        while (frame < framesN) & ~KbCheck %#ok<AND2>
+            % Background Drawing
+            % ---------- -------
+% {
+            backSource = backSource + backSeq(frame+1)*[1 0 1 0];
+            
+            Screen('FillRect', screen.w, screen.gray)
+            
+            % Disable alpha-blending, restrict following drawing to alpha channel:
+            Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [0 0 0 1]);
+                
+            % Clear 'dstRect' region of framebuffers alpha channel to zero:
+            %        Screen('FillRect', screen.w, [0 0 0 0], backRect);
+            Screen('FillRect', screen.w, [0 0 0 0]);
+                
+            % Fill circular 'dstRect' region with an alpha value of 255:
+            Screen('FillOval', screen.w, [0 0 0 255], backRect);
+                
+            % Enable DeSTination alpha blending and reenalbe drawing to all
+            % color channels. Following drawing commands will only draw there
+            % the alpha value in the framebuffer is greater than zero, ie., in
+            % our case, inside the circular 'dst2Rect' aperture where alpha has
+            % been set to 255 by our 'FillOval' command:
+            Screen('Blendfunction', screen.w, GL_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA, [1 1 1 1]);
+                
+                
+            Screen('DrawTexture', screen.w, backTex{1}, backSource, backRect, angle,0);
+
+            % Restore alpha blending mode for next draw iteration:
+            Screen('Blendfunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+           
+            % Object Drawing
+            % --------------
+            objColor = round(randn(S1)*objContrast*screen.gray + screen.gray);
+            Screen('FillRect', screen.w, objColor, objRect);
+            
+            % Photodiode box
+            % --------------
+            DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+            
+            % Flip 'waitframes' monitor refresh intervals after last redraw.
+            vbl = Screen('Flip', screen.w, vbl + (waitframes - 0.5) * screen.ifi);
+%}            
+%{
+if (exist('objSeq', 'var')==0)
+    objSeq = zeros(1, framesN*presentationsN);
+end
+objSeq(frame + framesN*i+1)=randn(S1)*objContrast;
+%}
+            frame = frame + waitframes;
+        end
+        frame = 0;
+
+        backSource = backSourceOri;
+        
+        if KbCheck
+            break
+        end
+    end
+    
+    % After drawing, we have to discard the noise checkTexture.
+    if (killTexFlag)
+        Screen('Close', backTex{1});
+    end
+    
+    FinishExperiment();
+    
+catch
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+end %try..catch..
+end
+
+
+

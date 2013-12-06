@@ -1,0 +1,171 @@
+function OMS_identifier_LD(varargin)
+% Wrapper to call JitterBackTex_JitterObjTex
+%
+% Divide the screen in object and background.
+% Object will be a given texture changing phases every so often.
+% Back will be a grating of a giving contrast and spatial frequency
+% that reverses periodically at backReverseFreq.
+
+global vbl screen pd
+if isempty(vbl)
+    vbl=0;
+end
+
+p=ParseInput(varargin{:});
+
+backContrast = p.Results.backContrast;
+backReverseFreq = .5;
+barsWidth = p.Results.barsWidth;
+
+presentationLength = p.Results.presentationLength;
+stimSize = p.Results.stimSize;
+debugging = p.Results.debugging;
+waitframes = p.Results.waitframes;
+pdStim = p.Results.pdStim;
+
+try
+    InitScreen(debugging);
+    
+    centerX = screen.rect(3)/2;
+    
+    % make the background texture
+    x= 0:stimSize+barsWidth-1;
+    bars = ceil(mod(floor(x/barsWidth),2)*2*screen.gray*backContrast...
+        + screen.gray*(1-backContrast));
+    backTex = Screen('MakeTexture', screen.w, bars);
+    
+    % Define the background Destination Rectangle
+    backRect = SetRect(0,0,stimSize, stimSize);
+    backRect = CenterRect(backRect, screen.rect);
+    
+    % Define the back source rectangle
+    backSource = SetRect(0,0,stimSize,1);
+    backSourceOri = backSource;
+
+    % define the obj rect. Center of the rect is in the upper left corner of the array
+    objRect = SetRect(0, 0, 8*PIXELS_PER_100_MICRONS, 8*PIXELS_PER_100_MICRONS);
+    objRect = CenterRect(objRect, screen.rect);
+    objRect = OffsetRect(objRect, -2*PIXELS_PER_100_MICRONS, -2*PIXELS_PER_100_MICRONS);
+    
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+        pd = DefinePD();
+    end
+
+    % make the jitterSeq corresponding to saccades
+    framesPerSec = 60;
+    framesN = uint32(presentationLength*screen.rate);
+
+    backSeq = zeros(1, framesN);
+    ForJumps = 31:120:framesN;
+    BackJumps = 91:120:framesN;
+    backSeq(ForJumps) = barsWidth;
+    backSeq(BackJumps) = -barsWidth;
+    
+    % make the objectSeq
+    objSeq = zeros(1, framesN);
+    objSeq(1:120:framesN) = barsWidth;
+    objSeq(61:120:framesN) = -barsWidth;
+        
+    % We run at most 'consPresentationsN' if user doesn't abort via
+    % keypress.
+
+    frame = 0;
+    
+    % Animationloop:
+    for trial=1:2
+        for i=0:4        % i=0 Global Motion, i=1:4 DIfferential
+            
+            % Define the obj source rectangle
+            objSource = [objRect(1)-centerX+stimSize/2 0 objRect(3)-centerX+stimSize/2 1];
+            %OffsetRect(objRect, -centerX, 0);
+            
+            while (frame < framesN) & ~KbCheck %#ok<AND2>
+                % Background Drawing
+                % ---------- -------
+                backSource = backSource + backSeq(frame+1)*[1 0 1 0];
+                
+                Screen('DrawTexture', screen.w, backTex, backSource, backRect, 0,0);
+                
+                
+                % Object Drawing
+                % --------------
+                if (i>0)
+                    objSource = objSource + objSeq(frame+1)*[1 0 1 0];
+                    
+                    %        Screen('DrawTexture', screen.w, objTex, objSource + objShiftRect, objRect, 0,0);
+                    Screen('DrawTexture', screen.w, backTex, objSource, objRect, 0,0);
+                end
+                
+                % Photodiode box
+                % --------------
+                DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+                
+                % Flip 'waitframes' monitor refresh intervals after last redraw.
+                vbl = Screen('Flip', screen.w, vbl + (waitframes - 0.5) * screen.ifi);
+                if (frame==0 || frame==30)
+                    1
+                end
+                frame = frame + waitframes;
+            end
+            frame = 0;
+            
+            backSource = backSourceOri;
+            
+            if (i==0)
+                % do nothing
+            elseif (i==2)
+                % move object down and left
+                objRect = OffsetRect(objRect, -4*PIXELS_PER_100_MICRONS, 4*PIXELS_PER_100_MICRONS);
+            elseif (i==4)
+                % move object up and left
+                objRect = OffsetRect(objRect, -4*PIXELS_PER_100_MICRONS, -4*PIXELS_PER_100_MICRONS);
+            else
+                % move object to the right
+                objRect = OffsetRect(objRect, 4*PIXELS_PER_100_MICRONS, 0);
+            end
+            
+            if KbCheck
+                break
+            end
+        end
+    end
+    
+    % After drawing, we have to discard the noise checkTexture.
+    Screen('Close', backTex);
+
+    FinishExperiment();
+    
+catch
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+end %try..catch..
+end
+
+function p =  ParseInput(varargin)
+    % Generates a structure with all the parameters
+    % Allowed parameters are:
+    %
+    p  = inputParser;   % Create an instance of the inputParser class.
+
+    % General
+    p.addParamValue('presentationLength', 10, @(x)x>0);
+    p.addParamValue('stimSize', 32*PIXELS_PER_100_MICRONS, @(x)x>0);
+    p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
+    p.addParamValue('waitframes', 1, @(x)x>0);
+    p.addParamValue('pdStim', 1, @(x) isnumeric(x));
+    
+    % Background related
+    p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
+    p.addParamValue('backReverseFreq', 1, @(x) x>0);
+    p.addParamValue('barsWidth', PIXELS_PER_100_MICRONS, @(x) x>0);
+
+    
+    % Call the parse method of the object to read and validate each argument in the schema:
+    p.parse(varargin{:});
+    
+end
+
+

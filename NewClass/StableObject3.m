@@ -1,0 +1,333 @@
+function StableObject3(varargin)
+% Wrapper to call JitterBackTex_JitterObjTex
+%
+% Divide the screen in object and background.
+% Object will be a given texture changing phases every so often.
+% Back will be a grating of a giving contrast and spatial frequency
+% that is either reversing periodically at backReverseFreq, still or
+% following FEM.
+global screen 
+
+InitScreen(0);
+    Add2StimLogList();
+
+%%%%%%%%%%%%%% Input Parser Start %%%%%%%%%%%%%%%%
+p  = inputParser;   % Create an instance of the inputParser class.
+
+p.addParamValue('objRect', GetRects(12*PIXELS_PER_100_MICRONS, screen.center), @(x) size(x,2)==4);
+p.addParamValue('objMeans', [0 63 127 255]);
+p.addParamValue('angle', 0, @(x) isnumeric(x));
+p.addParamValue('pdStim', 8, @(x) isnumeric(x));
+p.addParamValue('barsWidth', PIXELS_PER_100_MICRONS/2, @(x) x>0);
+p.addParamValue('backPattern', 1, @(x) x==1 || x==0);   % 0 for bars
+                                                        % 1 for checkers
+
+p.parse(varargin{:});
+
+objRect = p.Results.objRect;
+objMeans = p.Results.objMeans;
+angle = p.Results.angle;
+backPattern = p.Results.backPattern;
+pdStim = p.Results.pdStim;
+barsWidth = p.Results.barsWidth;
+%%%%%%%%%%%%%% Input Parser Ends %%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%% Constants %%%%%%%%%%%%%%%%
+presentationLength = 60;    % seconds, not Hz
+movieDurationSecs = 3*presentationLength;
+[screenW screenH] = SCREEN_SIZE;
+stimSize = floor(screenH/PIXELS_PER_100_MICRONS)*PIXELS_PER_100_MICRONS;
+objContrast = 0;
+try
+
+    for i=1:2
+        % All 4 Luminance levels with background reversing
+        for j=1:length(objMeans)
+            objMean = objMeans(j);
+            UFlickerObj(...
+                'presentationLength', presentationLength, ...
+                'movieDurationSecs', movieDurationSecs, ...
+                'stimSize', stimSize, ...
+                'objContrast', objContrast, ...
+                'barsWidth', barsWidth, ...
+                'backMode', [1 0 1 1], ...
+                'objMean', objMean, ...
+                'rects', objRect, ...
+                'angle', angle, ...
+                'backPattern', backPattern, ...
+                'pdStim', pdStim);
+        end
+    end
+        
+    FinishExperiment();
+    
+catch exception
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+    rethrow(exception)
+end %try..catch..
+end
+
+function UFlickerObj(varargin)
+    % wrapper to call JitteringBackTex_UniformFieldObjText
+    %
+    % There are 4 different backgrounds. Each can be turned on/off by
+    % setting clearing the corresponding bit in backMode array
+    % backMode(1):    repeated random jitter, lasts backJitterPeriod
+    %           all presentations have the same sequence
+    % backMode(2):    random jitter, lasts backJitterPeriod
+    %           every presentation has a different random sequence
+    % backMode(3):    reversing @backReverseFreq
+    % backMode(4):    still
+    %
+    % There are several obj rectangles (at least 1) passed through objRect
+    % (an nx4 array describing the n rectangles).
+    % Each rectangle can different contrasts passed through objContrasts,
+    % an n x contrastN array. Each presentation will pick the contrasts 
+    % randomly for each checker. Alternatively, objContrasts can be
+    % 1xcontrastsN, in that case, each presentation picks the contrast
+    % randomly but the same contrast is used for all checkers in that
+    % presentation.
+    %
+    % Also, the random sequence in each checker can be repeated if
+    % repeatObjSeq is set or they can all be different. Default behaviour
+    % is, 'all presentations are different'.
+    %
+    % Internaly, I will work on backN 'presentations' at a time. I will
+    % randomly pick an order for them and after displaying them all, I will
+    % start again until presentationsN 'presentations' are done
+
+    global vbl screen backRect backSource objRect pd
+
+    if isempty(vbl)
+        vbl=0;
+    end
+    
+    p=ParseInput(varargin{:});
+
+    objMeans = p.Results.objMean;
+    objRect = p.Results.rects;
+
+    
+    backMode = [1 0 1 1];
+    backContrast = p.Results.backContrast;
+    backReverseFreq = p.Results.backReverseFreq;        % for reversing
+    backJitterPeriod = p.Results.backJitterPeriod;
+    backAngle = p.Results.angle;
+    backSeed = p.Results.backSeed;
+    backTex = p.Results.backTexture;
+    backPattern = p.Results.backPattern;
+    
+    stimSize = p.Results.stimSize;
+    presentationLength = p.Results.presentationLength;
+    movieDurationSecs = p.Results.movieDurationSecs;
+    debugging = p.Results.debugging;
+    barsWidth = p.Results.barsWidth;
+    waitframes = p.Results.waitframes;
+    pdStim = p.Results.pdStim;
+    
+    backN = 3;
+    
+    % Redefine exp time to have an even number of jitters
+    movieDurationSecs = backN*presentationLength* ...
+        floor(movieDurationSecs/(backN*presentationLength));
+
+    % if by any reason backJitterPeriod or objjitterPeriod are bigger than
+    % presentationLength is because I forgot to input the right parameters,
+    % fix it
+    if (presentationLength < backJitterPeriod)
+        backJitterPeriod = presentationLength;
+    end
+    if (size(objMeans,2) < size(objRect,1))
+        objMeans = ones(1, size(objRect,1))*objMeans;
+    end
+    
+try
+    InitScreen(0);
+    Add2StimLogList();
+    
+    % make the background texture
+    if (isempty(backTex))
+        clearBackTexFlag = 1;
+        if (backPattern)
+            backTex = GetCheckersTex(stimSize+2*barsWidth, barsWidth, backContrast);
+        else
+            backTex = GetBarsTex(stimSize+2*barsWidth, barsWidth, backContrast);
+        end
+    else
+        clearBackTexFlag = 0;
+    end
+    
+    % Define the background Destination Rectangle
+    backRect = SetRect(0,0,stimSize, stimSize);
+    backRect = CenterRect(backRect, screen.rect);
+    
+    % Define the source rectangles
+%    backSource = GetRects(stimSize, [screen.rect(3) screen.rect(4)]/2);
+    backSource = SetRect(0, 0, stimSize, stimSize);
+    backSourceOri = backSource;
+    
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+        pd = DefinePD();
+    end
+
+    framesPerSec = screen.rate;
+    backJumpsPerPeriod = round(backJitterPeriod*framesPerSec);
+    objJumpsPerPeriod = round(presentationLength*framesPerSec);
+
+    % make the Still, the reversing and the random jitter background
+    jitterSeq(4,:)=zeros(1, backJumpsPerPeriod);
+    forwardJumps = uint32(1:framesPerSec/backReverseFreq:backJumpsPerPeriod);
+    backJumps = uint32(framesPerSec/backReverseFreq/2+1:framesPerSec/backReverseFreq:backJumpsPerPeriod);
+    jitterSeq(3,forwardJumps)=   barsWidth;
+    jitterSeq(3,backJumps)=   -barsWidth;
+    S1 = RandStream('mcg16807', 'Seed', backSeed);
+    jitterSeq(1,:)=randi(S1, 3, 1, backJumpsPerPeriod)-2;
+    backStream = RandStream('mcg16807', 'Seed', backSeed);
+    clear S1
+    
+    % We run at most 'presentationsN' if user doesn't abort via
+    % keypress.
+    presentationsN = uint32(movieDurationSecs/presentationLength)/backN;
+    
+    
+    framesN = uint32(presentationLength*screen.rate);
+
+    
+    % for efficiency preallocate objSeq
+    objSeq = uint8(ones(1, objJumpsPerPeriod)*objMeans);
+    
+    % Animationloop:
+    for presentation = 1:presentationsN
+
+        % get a random order of all possible backgrounds, even the ones
+        % that are not displayed. Latter on we might skip some of them
+        backOrder = [4 3 1 2];
+%backOrder
+%backOrderArray(presentation, :)=backOrder;
+        for back=1:4
+            
+            background = backMode(backOrder(back));
+            % Do we have to skip this background?
+            if (background==0)
+                continue
+            end
+            if (backOrder(back)==2)
+                % generate the new random jitter out of the backStream
+                backSeq = randi(backStream, 3, 1, backJumpsPerPeriod)-2;
+            else
+                backSeq = jitterSeq(backOrder(back),:);
+            end
+%            [presentation backOrder(back)];
+%            [backOrder(back) backSeq(1:10)]
+%normDistribution(:,1:10)
+%objSeq
+%[checkContrast backOrder(back)]
+%if (exist('totalbackSeq')==0)
+%    clear Screen
+%    totalbackSeq = zeros(1, presentationsN*backJumpsPerPeriod);
+%end
+%totalbackSeq((presentation-1)*backJumpsPerPeriod+1:presentation*backJumpsPerPeriod) = backSeq;
+%if (exist('totalObjSeq')==0)
+%    clear Screen
+%    totalObjSeq = zeros(1, presentationsN*objJumpsPerPeriod);
+%end
+%totalObjSeq((presentation-1)*objJumpsPerPeriod+1:(presentation)*objJumpsPerPeriod) =  objSeq;
+            JitteringBackTex_UniformFieldObj(backSeq, objSeq, ...
+                waitframes, framesN, backTex{1}, backAngle, barsWidth, pdStim)
+            % Previous function DID modify backSource. Recenter it to prevent
+            % too much sliding of the texture.
+            % Is not perfect and sliding will still take place but will be
+            % slower and hopefully will be ok
+            backSource = backSourceOri;
+            
+            if (KbCheck)
+                break
+            end
+        end
+        if (KbCheck)
+            break
+        end
+    end
+    
+    if (clearBackTexFlag)
+        % After drawing, we have to discard the noise checkTexture.
+        Screen('Close', backTex{1});
+    end
+        
+catch exception
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+    rethrow(exception)
+end %try..catch..
+end
+
+function p =  ParseInput(varargin)
+    % Generates a structure with all the parameters
+    % Allowed parameters are:
+    %
+    % objContrast, objSeed, stimSize, objSizeH, objSizeV,
+    % objCenterXY, backContrast, backJitterPeriod, presentationLength,
+    % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
+
+    % In order to get a parameter back just use
+    %   p.Resulst.parameter
+    % In order to display all the parameters use
+    %   disp 'List of all arguments:'
+    %   disp(p.Results)
+    %
+    % General format to add inputs is...
+    % p.addRequired('script', @ischar);
+    % p.addOptional('format', 'html', ...
+    %     @(x)any(strcmpi(x,{'html','ppt','xml','latex'})));
+    % p.addParamValue('outputDir', pwd, @ischar);
+    % p.addParamValue('maxHeight', [], @(x)x>0 && mod(x,1)==0);
+
+    p  = inputParser;   % Create an instance of the inputParser class.
+
+    [screenX, screenY] = SCREEN_SIZE;
+    rect =  CenterRectOnPoint([0 0 12 12]*PIXELS_PER_100_MICRONS, screenX/2, screenY/2);
+    
+    % Object related
+    p.addParamValue('objSeed', 1, @(x) isnumeric(x));
+    p.addParamValue('objContrast', [.03 .06 .12 .24 1], @(x) all(all(x>=0)) && all(all(x<=1)));
+    p.addParamValue('objMean', 127, @(x) all(all(x>=0)) && all(all(x<=255)));
+    p.addParamValue('rects', rect, @(x) size(x,1)==4 || size(x,2)==4);
+    
+    % Background related
+    p.addParamValue('backSeed', 2, @(x)isnumeric(x));
+    p.addParamValue('backMode', [0 0 1 0], @(x) size(x,1)==1 && size(x,2)==4);
+    p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
+    p.addParamValue('backJitterPeriod', 2, @(x)x>0);
+    p.addParamValue('backReverseFreq', 2, @(x) x>0);
+    p.addParamValue('backTexture', [], @(x) iscell(x));
+    p.addParamValue('backRect', GetRects(screenY, [screenX screenY]/2), @(x) isnumeric(x) && size(x,2)==4);
+    p.addParamValue('backPattern', 1, @(x) x==0 || x==1);
+    p.addParamValue('angle', 0, @(x) isnumeric(x));
+    
+    % General
+    p.addParamValue('stimSize', PIXELS_PER_100_MICRONS*32, @(x)x>0);
+    p.addParamValue('presentationLength', 100, @(x)x>0);
+    p.addParamValue('movieDurationSecs', 10000, @(x)x>0);
+    p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
+    p.addParamValue('barsWidth', PIXELS_PER_100_MICRONS/2, @(x)x>0);
+    p.addParamValue('waitframes', 1, @(x)isnumeric(x)); 
+    p.addParamValue('pdStim', 3, @(x) isnumeric(x));
+        
+
+    % Call the parse method of the object to read and validate each argument in the schema:
+    p.parse(varargin{:});
+    
+end
+
+
+
+
+
+
+

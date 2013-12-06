@@ -1,0 +1,21 @@
+function openDBimage()
+for i=51:60
+    file = ['imk000', num2str(i), '.iml'];
+    f1=fopen(file,'rb','ieee-be');
+    w=1536;h=1024;
+    buf=fread(f1,[w,h],'uint16');
+    colormap(gray);
+    imagesc(buf');
+    pause(1)
+end
+
+images = [38 46 62 64];
+for i=1:4
+    file = ['imk000', num2str(imagesi), '.iml'];
+    f1=fopen(file,'rb','ieee-be');
+    w=1536;h=1024;
+    buf=fread(f1,[w,h],'uint16');
+    colormap(gray);
+    imagesc(buf');
+end
+%38, 46, 62, 64

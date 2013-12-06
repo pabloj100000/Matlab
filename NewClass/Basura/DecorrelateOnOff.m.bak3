@@ -1,0 +1,139 @@
+function DecorrelateOnOff(varargin)
+%   obj and background will both be either bars or checkers of a given
+%   size. The phase and contrast will change over some values.
+% 
+% Divide the screen in object and background.
+% Object will be a given texture changing phases every so often.
+% Back will be a grating of a giving contrast and spatial frequency
+% that reverses periodically at backReverseFreq.
+
+global vbl screen pd
+
+if isempty(vbl)
+    vbl=0;
+end
+
+p=ParseInput(varargin{:});
+
+% object
+objContrast = p.Results.objContrast;
+objCheckerSize = p.Results.objCheckerSize;
+objFreq = p.Results.objFreq;
+stimSize = p.Results.stimSize;
+
+% General
+pdStim = p.Results.pdStim;
+
+presentationLength = p.Results.presentationLength;
+
+try
+    InitScreen(0);
+
+    % each presentation will have all possible contrasts.
+    framesPerSec = screen.rate;
+    presentationsN = size(objCheckerSize,2);
+    
+    % Define the object Rectangle
+    objRect = GetRects(stimSize, screen.center);
+            
+    % make the object texture, each checker is one pixel
+    objCheckersN = stimSize/min(objCheckerSize);
+    objTex = GetCheckersTex(objCheckersN+1, 1, screen, 1);
+        
+    % Define the PD box
+    if exist('pd', 'var')==0 || isempty(pd)
+        pd = DefinePD();
+    end
+    
+    % make the saccade sequence
+    framesN = presentationLength*framesPerSec;
+    objFramePeriod = round(framesPerSec/objFreq);
+
+    phaseIndex = 0;
+    for presentation=1:presentationsN
+        objCheckersN = stimSize/objCheckerSize(presentation);
+        objSourceOri = [0 0 objCheckersN objCheckersN];
+        
+        for frame=0:framesN-1
+            % is it time to change the phase of the center?
+            if (mod(frame, objFramePeriod)==0)
+                objSource = objSourceOri + phaseIndex*[1 0 1 0];
+                phaseIndex = mod(phaseIndex+1,2);
+            end
+            
+            % Restore alpha blending mode for next draw iteration:
+            Screen('Blendfunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            
+            Screen('FillRect', screen.w, screen.gray);
+            
+            % Draw object
+%            Screen('FillRect', screen.w, screen.white, objRect);
+            Screen('DrawTexture', screen.w, objTex{1}, objSource, objRect, [], 0, objContrast);
+            
+            % Photodiode box
+            % --------------
+            DisplayStimInPD2(pdStim, pd, frame, screen.rate, screen)
+            
+            Screen('Flip', screen.w);
+            if (KbCheck)
+                break
+            end
+        end
+        
+        if (KbCheck)
+            break
+        end
+    end
+    Screen('Close', objTex{1});
+    FinishExperiment();
+    
+catch
+    %this "catch" section executes in case of an error in the "try" section
+    %above. Importantly, it closes the onscreen window if its open.
+    CleanAfterError();
+    psychrethrow(psychlasterror);
+end %try..catch..
+end
+
+function p =  ParseInput(varargin)
+    % Generates a structure with all the parameters
+    % Allowed parameters are:
+    %
+    % objContrast, objJitterPeriod, objSeed, stimSize, objSizeH, objSizeV,
+    % objCenterXY, backContrast, backJitterPeriod, presentationLength,
+    % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
+
+    % In order to get a parameter back just use
+    %   p.Resulst.parameter
+    % In order to display all the parameters use
+    %   disp 'List of all arguments:'
+    %   disp(p.Results)
+    %
+    % General format to add inputs is...
+    % p.addRequired('script', @ischar);
+    % p.addOptional('format', 'html', ...
+    %     @(x)any(strcmpi(x,{'html','ppt','xml','latex'})));
+    % p.addParamValue('outputDir', pwd, @ischar);
+    % p.addParamValue('maxHeight', [], @(x)x>0 && mod(x,1)==0);
+
+    p  = inputParser;   % Create an instance of the inputParser class.
+
+    
+    % General
+    p.addParamValue('stimSize', 16*32, @(x)x>0);
+    p.addParamValue('presentationLength', 10, @(x)x>0);
+    p.addParamValue('movieDurationSecs', 1600, @(x)x>0);
+    p.addParamValue('pdStim', 101, @(x) isnumeric(x));
+
+    % Object related
+    p.addParamValue('objContrast', 1, @(x) all(all(x>=0)) && all(all(x<=1)));
+    p.addParamValue('objFreq', 10, @(x) x>0);
+    p.addParamValue('objCheckerSize', [16*32 64 32 16 8], @(x) all(all(x>0)));
+        
+    % Call the parse method of the object to read and validate each argument in the schema:
+    p.parse(varargin{:});
+    
+end
+
+
+

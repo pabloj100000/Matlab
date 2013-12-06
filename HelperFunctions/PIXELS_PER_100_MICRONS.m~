@@ -1,0 +1,19 @@
+function pixels = PIXELS_PER_100_MICRONS
+    width = Screen('WindowSize', max(Screen('Screens')));
+    switch width
+        case (640)
+            pixels = 10;
+        case (800)
+            pixels = 12;
+        case (832)
+            pixels = 12;
+        case (1024)
+            pixels = 18;
+        case 1152:
+            pixels = 20;
+        case 1280
+            pixels = 22;
+        otherwise
+            error('Pixels not defined')
+    end
+end

@@ -1,0 +1,10 @@
+function Tex = GetBarsWithContrastTex(stimSize, screen, Contrasts)
+% Usage: Tex = GetCheckersTex(stimSize, barsWidth, screen, Contrast)
+    x = ones(1:stimSize);
+    x = mod(x,2);
+    bars = ones(size(Contrasts), stimSize);
+    bars = bars*2*screen.gray*Contrast...
+        + screen.gray*(1-Contrast);
+    Tex{1} = Screen('MakeTexture', screen.w, bars);
+end
+
