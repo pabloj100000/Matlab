@@ -14,6 +14,7 @@ function SaccadesAndFEM(varargin)
     % SaccadesAndFEM('objAlpha', 1, 'periAlpha', 1, 'objMeanLum', -127, 'periMeanLum', 127)
 global screen
 try    
+
     p=ParseInput(varargin{:});
     Add2StimLogList;
     
@@ -27,6 +28,7 @@ try
     checkersSize = p.Results.checkersSize;
     magnification = p.Results.magnification;
     pdMode = p.Results.pdMode;
+    repeatFEM = p.Results.repeatFEM;
     
     objIndex = p.Results.objIndex;
     objAlpha = p.Results.objAlpha;
@@ -54,7 +56,6 @@ try
     % it allows to specify a global per-patch contrast value:
     Screen('BlendFunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
     % Generate the textures.
     folder = '/Users/jadz/Documents/Notebook/Matlab/Stimuli/Images/';
     objectIm = imread([folder, 'image', num2str(objIndex), '.jpg']) + objMeanLum;
@@ -67,7 +68,7 @@ try
         peripheryIm = GetCheckers(objectIm, checkersSize);
     end
     peripheryTex = maskMatrix(peripheryIm, maskRadia, saccadeSize, 0);
-    
+
     clear objectIm peripheryIm checkersIm
 
     
@@ -95,6 +96,10 @@ try
             offset = saccadeSize/2;
         elseif (mod(frame, backFrames)==0)
             offset = -saccadeSize/2;
+        end
+        
+        if (repeatFEM && mod(frame, 2*backFrames)==0)
+            randStream.reset;
         end
         
         step = (randi(randStream, 2)-1.5)*rwStepSize;
@@ -179,7 +184,8 @@ function p =  ParseInput(varargin)
     p.addParamValue('backReverseFreq', 1, @(x) x>=0);
                                                                 %x==-1, uses checkers
     p.addParamValue('magnification', 1, @(x) x>=0);
-                                                                
+    p.addParamValue('repeatFEM', 1, @(x) x==0 || x==1);     % x==1, every period has the same FEM sequence
+    
     p.addParamValue('objIndex', 6, @(x) x>=0);
     p.addParamValue('objAlpha', .5, @(x) x>=0 && x<=1);
     p.addParamValue('objMeanLum', 0, @(x) -127<=x && x<=127);
