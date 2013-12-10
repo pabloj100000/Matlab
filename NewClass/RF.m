@@ -35,7 +35,7 @@ try
     % We run at most 'framesN' if user doesn't abort via
     % keypress.
     whiteFrames = round(screen.rate/waitframes);
-    framesN = uint32(floor(movieDurationSecs*screen.rate/waitframes/whiteFrames)*whiteFrames)
+    framesN = uint32(floor(movieDurationSecs*screen.rate/waitframes/whiteFrames)*whiteFrames);
 
     % init random seed generator
     randomStream = RandStream('mcg16807', 'Seed', seed);
