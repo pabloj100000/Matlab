@@ -34,7 +34,8 @@ try
 
     % We run at most 'framesN' if user doesn't abort via
     % keypress.
-    framesN = uint32(movieDurationSecs*screen.rate/waitframes);
+    whiteFrames = round(screen.rate/waitframes);
+    framesN = uint32(floor(movieDurationSecs*screen.rate/waitframes/whiteFrames)*whiteFrames)
 
     % init random seed generator
     randomStream = RandStream('mcg16807', 'Seed', seed);
@@ -45,7 +46,7 @@ try
 
     % Animationloop:
     BinaryCheckers(framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
-        randomStream, pd, objRect);
+        randomStream, pd, whiteFrames, objRect);
 
     FinishExperiment();
     
@@ -58,10 +59,9 @@ end %try..catch..
 end
 
 function [exitFlag] = BinaryCheckers(framesN, waitframes, checkersV, checkersH, ...
-    objContrast, randomStream, pd, objRect)
+    objContrast, randomStream, pd, whiteFrames, objRect)
     global screen
 
-    whiteFrames = round(screen.rate/waitframes);
     
     for frame = 0:framesN-1
 
