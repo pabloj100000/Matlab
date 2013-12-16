@@ -57,7 +57,10 @@ try
     Screen('BlendFunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     % Generate the textures.
-    folder = '/Users/jadz/Documents/Notebook/Matlab/Stimuli/Images/';
+    folder = '/Users/jadz/Documents/Notebook/Matlab/Stimuli/Images/'; % my laptop's path
+    if (~isdir(folder))
+        folder = '/Users/baccuslab/Desktop/stimuli/Pablo/Images/'; % D239 stimulus desktop's path
+    end
     objectIm = imread([folder, 'image', num2str(objIndex), '.jpg']) + objMeanLum;
     objectTex = maskMatrix(objectIm, maskRadia, saccadeSize, 1);
     backTex = GetBackground(maskRadia-1, saccadeSize, periMeanLum, objMeanLum); % the -1 is to avoid an edge problem. Take it out and see for yourself
