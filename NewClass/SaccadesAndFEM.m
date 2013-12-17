@@ -29,6 +29,7 @@ try
     magnification = p.Results.magnification;
     pdMode = p.Results.pdMode;
     repeatFEM = p.Results.repeatFEM;
+    center = p.Results.center;
     
     objIndex = p.Results.objIndex;
     objAlpha = p.Results.objAlpha;
@@ -77,7 +78,15 @@ try
     
     destRect = Screen('Rect', objectTex)*magnification;
     destRect = CenterRect(destRect, screen.rect);
-
+    
+    % Offset both screen.rect and destRect to be centered on "center"
+    % since center is given in checkers corresponding to those of RF
+    % mapping, stimulus is currently centered on the screen's center
+    % which is [16.5 16.5]
+    offset = (center-[16.5 16.5])*PIXELS_PER_100_MICRONS;
+    destRect = OffsetRect(destRect,offset(1), offset(2));
+    checkersRect = OffsetRect(screen.rect, offset(1), offset(2));
+    
     backFrames = round(screen.rate/backReverseFreq/2/waitframes/2)*2;
     framesN = round(presentationLength*screen.rate/waitframes);
     framesN = round(framesN/backFrames)*backFrames;
@@ -109,7 +118,7 @@ try
         offset = offset + step;
         
         % display last texture
-        Screen('DrawTexture', screen.w, backTex, [], screen.rect + offset*[1 0 1 0], 0, 0);
+        Screen('DrawTexture', screen.w, backTex, [], checkersRect + offset*[1 0 1 0], 0, 0);
         Screen('DrawTexture', screen.w, objectTex, [], destRect + offset*[1 0 1 0], 0, 0, objAlpha);
         Screen('DrawTexture', screen.w, peripheryTex, [], destRect + offset*[1 0 1 0], 0, 0, periAlpha);
         
@@ -181,8 +190,8 @@ function p =  ParseInput(varargin)
     p.addParamValue('checkersSize', PIXELS_PER_100_MICRONS/2, @(x) x>0);
     p.addParamValue('waitframes', round(.03*frameRate), @(x)isnumeric(x)); 
     p.addParamValue('pdMode', 0, @(x) x==0 || x==1);
-    
-    p.addParamValue('saccadeSize', 8*PIXELS_PER_100_MICRONS, @(x) x>=0);
+    p.addParamValue('center', [16.5 16.5], @(x) all(size(x)==[1 2]) && all(isnumeric(x)));
+    p.addParamValue('saccadeSize', .5*PIXELS_PER_100_MICRONS, @(x) x>=0);
     p.addParamValue('maskRadia', 4*PIXELS_PER_100_MICRONS, @(x) x>=0);
     p.addParamValue('backReverseFreq', 1, @(x) x>=0);
                                                                 %x==-1, uses checkers
@@ -193,7 +202,7 @@ function p =  ParseInput(varargin)
     p.addParamValue('objAlpha', .5, @(x) x>=0 && x<=1);
     p.addParamValue('objMeanLum', 0, @(x) -127<=x && x<=127);
     p.addParamValue('periIndex', 5, @(x) x>=0 || x==-1);   %x>=5 pulls an image
-    p.addParamValue('periAlpha', .5, @(x) x>=0 && x<=1);
+    p.addParamValue('periAlpha', 1, @(x) x>=0 && x<=1);
     p.addParamValue('periMeanLum', 0, @(x) -127<=x && x<=127);
 
     % Call the parse method of the object to read and validate each argument in the schema:

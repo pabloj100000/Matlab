@@ -51,9 +51,6 @@ function InitScreen(debugging, varargin)
     if screen.gray == screen.white
 		screen.gray=screen.white / 2;
     end
-
-    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
-    screen.center=[screenX screenY]/2;
     
     % Open a double buffered fullscreen window with a gray background:
     if (screenNumber == 0)
@@ -67,7 +64,10 @@ function InitScreen(debugging, varargin)
     else
         [screen.w screen.rect]=Screen('OpenWindow',screenNumber, backColor);
     end
-    
+
+    %    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
+    [screen.center(1) screen.center(2)] = WindowCenter(screen.w)%[screenX screenY]/2;
+
     % Query duration of monitor refresh interval:
     screen.ifi=Screen('GetFlipInterval', screen.w);
 
