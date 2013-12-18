@@ -260,7 +260,7 @@ function p =  ParseInput(varargin)
     p.addParamValue('backMode', [0 0 1 0], @(x) size(x,1)==1 && size(x,2)==4);
     p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
     p.addParamValue('backJitterPeriod', 2, @(x)x>0);
-    p.addParamValue('backReverseFreq', 2, @(x) x>0);
+    p.addParamValue('backReverseFreq', 1, @(x) x>0);
     p.addParamValue('backTexture', [], @(x) iscell(x));
     p.addParamValue('backRect', GetRects(screenY, [screenX screenY]/2), @(x) isnumeric(x) && size(x,2)==4);
     p.addParamValue('backPattern', 1, @(x) x==0 || x==1);

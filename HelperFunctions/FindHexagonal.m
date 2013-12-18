@@ -1,7 +1,7 @@
-function FindLowDensity()
+function FindHexagonal()
 % Obj Parameters
-objSizeH = 8*PIXELS_PER_100_MICRONS;
-objSizeV = 8*PIXELS_PER_100_MICRONS;
+objSizeH = 2.8*PIXELS_PER_100_MICRONS;
+objSizeV = 2.77*PIXELS_PER_100_MICRONS;
 %{
 objContrast = 1%.25;
 
