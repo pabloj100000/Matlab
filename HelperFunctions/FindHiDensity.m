@@ -1,8 +1,8 @@
 function FindHiDensity()
 % Obj Parameters
-objSizeH = 1.2*PIXELS_PER_100_MICRONS;
-objSizeV = 1.5*PIXELS_PER_100_MICRONS;
-objDistV = 5*PIXELS_PER_100_MICRONS;
+objSizeH = 1.5*PIXELS_PER_100_MICRONS;
+objSizeV = 1.2*PIXELS_PER_100_MICRONS;
+objDistV = 6*PIXELS_PER_100_MICRONS;
 objDistH = 0;               % in pixels
 
 switchingTime = 0.5;        % in seconds

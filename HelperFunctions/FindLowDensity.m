@@ -1,7 +1,7 @@
 function FindLowDensity()
 % Obj Parameters
-objSizeH = 8*PIXELS_PER_100_MICRONS;
-objSizeV = 8*PIXELS_PER_100_MICRONS;
+objSizeH = 7*PIXELS_PER_100_MICRONS;
+objSizeV = 7*PIXELS_PER_100_MICRONS;
 %{
 objContrast = 1%.25;
 
