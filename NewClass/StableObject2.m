@@ -54,6 +54,10 @@ try
                 'angle', angle, ...
                 'backPattern', backPattern, ...
                 'pdStim', pdStim);
+            
+            if (KbCheck)
+                break
+            end
         end
         % All 4 Luminance levels wtih background Still
         for j=1:length(objMeans)
@@ -70,8 +74,14 @@ try
                 'angle', angle, ...
                 'backPattern', backPattern, ...
                 'pdStim', pdStim);
+            if (KbCheck)
+                break
+            end
+
         end
-        
+        if (KbCheck)
+            break
+        end
     end
     FinishExperiment();
     
