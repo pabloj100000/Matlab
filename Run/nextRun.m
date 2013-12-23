@@ -4,13 +4,15 @@ try
     Add2StimLogList();
 %    Wait2Start()
 
-    RF('movieDurationSecs', 1000)
+%    RF('movieDurationSecs', 1000)
     pause(.2)
 
+    StableObject2();
+    
     PL = 1;
-    newCheckerCenter = [1 1];
-    maskRadia = .5*PIXELS_PER_100_MICRONS;
-    sz = PIXELS_PER_100_MICRONS/2;
+    newCheckerCenter = [16.5 16.5];
+    maskRadia = 6*PIXELS_PER_100_MICRONS;
+    sz = 4*PIXELS_PER_100_MICRONS/2;
     images = [0 7 10 12 14 18];
     alphas = [.025 .05 .1 .2 .4];
     for block=0:1
@@ -29,12 +31,12 @@ try
             % Object plus full contrast periphery
             SaccadesAndFEM('objAlpha', 0, 'presentationLength', PL, 'periIndex',...
                 images(i), 'objIndex', images(i), 'pdMode',1, 'saccadeSize', sz, ...
-                'maskRadia', maskRadia, 'center', newCheckerCenter);
+                'maskRadia', maskRadia, 'center', newCheckerCenter, 'periAlpha', -1);
             if (KbCheck)
                 break
             end
         end
-        
+% {        
         for i=1:length(images)
             nextImage = mod(i, length(images))+1;
             for j = 1:length(alphas)
@@ -42,18 +44,21 @@ try
                 % Object only
                 SaccadesAndFEM('objAlpha', alphas(j), 'presentationLength', ...
                     PL, 'periIndex', images(i), 'objIndex', images(i), ...
-                    'periAlpha', 0, 'pdMode',1, 'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter);
+                    'periAlpha', 0, 'pdMode',1, 'saccadeSize', sz, 'maskRadia', ...
+                    maskRadia, 'center', newCheckerCenter);
                 
                 % Object plus full contrast periphery
                 SaccadesAndFEM('objAlpha', alphas(j), 'presentationLength', ...
                     PL, 'periIndex', images(i), 'objIndex', images(i), ...
-                    'pdMode',1, 'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter);
+                    'pdMode',1, 'saccadeSize', sz, 'maskRadia', maskRadia, ...
+                    'center', newCheckerCenter, 'periAlpha', -1);
                 
                 % Object plus full contrast periphery but different
                 % periphery
                 SaccadesAndFEM('objAlpha', alphas(j), 'presentationLength', ...
                     PL, 'periIndex', images(i), 'objIndex', images(nextImage), ...
-                    'pdMode',1, 'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter);
+                    'pdMode',1, 'saccadeSize', sz, 'maskRadia', maskRadia, ...
+                    'center', newCheckerCenter, 'periAlpha', -1);
 
                 if (KbCheck)
                     break
@@ -66,6 +71,7 @@ try
         if (KbCheck)
             break
         end
+%}
     end
 % }
     FinishExperiment();

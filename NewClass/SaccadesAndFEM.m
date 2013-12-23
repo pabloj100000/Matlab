@@ -30,6 +30,7 @@ try
     pdMode = p.Results.pdMode;
     repeatFEM = p.Results.repeatFEM;
     center = p.Results.center;
+    centerShape = p.Results.centerShape;
     
     objIndex = p.Results.objIndex;
     objAlpha = p.Results.objAlpha;
@@ -63,15 +64,23 @@ try
         folder = '/Users/baccuslab/Desktop/stimuli/Pablo/Images/'; % D239 stimulus desktop's path
     end
     objectIm = imread([folder, 'image', num2str(objIndex), '.jpg']) + objMeanLum;
-    objectTex = maskMatrix(objectIm, maskRadia, saccadeSize, 1);
-    backTex = GetBackground(maskRadia-1, saccadeSize, periMeanLum, objMeanLum); % the -1 is to avoid an edge problem. Take it out and see for yourself
+    if (objAlpha<0)
+        objectIm = (ojbectIm>screen.gray+objMeanLum)*255;
+        objAlpha=-objAlpha;
+    end
+    objectTex = maskMatrix(objectIm, maskRadia, saccadeSize, 1, centerShape);
+    backTex = GetBackground(maskRadia-1, saccadeSize, periMeanLum, objMeanLum, centerShape); % the -1 is to avoid an edge problem. Take it out and see for yourself
     
     if (periIndex >=0)
         peripheryIm = imread([folder, 'image', num2str(periIndex),'.jpg']) + periMeanLum;
+        if (periAlpha<0)
+            peripheryIm = (peripheryIm>screen.gray+periMeanLum)*255;
+            periAlpha=-periAlpha;
+        end
     else
         peripheryIm = GetCheckers(objectIm, checkersSize);
     end
-    peripheryTex = maskMatrix(peripheryIm, maskRadia, saccadeSize, 0);
+    peripheryTex = maskMatrix(peripheryIm, maskRadia, saccadeSize, 0, centerShape);
 
     clear objectIm peripheryIm checkersIm
 
@@ -160,15 +169,23 @@ function array = GetCheckers(im, checkersSize)
     array = mod(floor(x/checkersSize) + floor(y/checkersSize),2)*255;    
 end
 
-function backTex = GetBackground(radia, saccadeSize, periMeanLum, objMeanLum)
+function backTex = GetBackground(radia, saccadeSize, periMeanLum, objMeanLum, centerShape)
     global screen
 
     width = screen.rect(3);
     height = screen.rect(4);
     [x, y] = meshgrid(1:width, 1:height);
-    mask = ((x-width/2-saccadeSize/2).^2 + (y-height/2).^2>radia^2);
-    mask = mask.*((x-width/2+saccadeSize/2).^2 + (y-height/2).^2>radia^2);
-    mask = mask.*((abs(x-width/2)>saccadeSize/2) | (abs(y-height/2)>radia));
+    if (centerShape)
+        mask = abs(x-width/2)>radia + saccadeSize/2 | abs(y-height/2)>radia;
+    else
+        mask = ((x-width/2-saccadeSize/2).^2 + (y-height/2).^2>radia^2);
+        mask = mask.*((x-width/2+saccadeSize/2).^2 + (y-height/2).^2>radia^2);
+        mask = mask.*((abs(x-width/2)>saccadeSize/2) | (abs(y-height/2)>radia));
+    end
+    % assign to center and periphery specific colors. Since colores
+    % assigned to each mask can be anything in the range [0-255], I first
+    % make one of the mask values -1
+    mask = double(mask);
     mask(mask==0) = -1;
     mask(mask>0) = periMeanLum + screen.gray;
     mask(mask==-1) = objMeanLum + screen.gray;
@@ -197,12 +214,12 @@ function p =  ParseInput(varargin)
                                                                 %x==-1, uses checkers
     p.addParamValue('magnification', 1, @(x) x>=0);
     p.addParamValue('repeatFEM', 1, @(x) x==0 || x==1);     % x==1, every period has the same FEM sequence
-    
+    p.addParamValue('centerShape', 1, @(x) x==0 || x==1);   % x==1, rectangle center, x==0, circles + square mask
     p.addParamValue('objIndex', 6, @(x) x>=0);
-    p.addParamValue('objAlpha', .5, @(x) x>=0 && x<=1);
+    p.addParamValue('objAlpha', .5, @(x) x>=-1 && x<=1);
     p.addParamValue('objMeanLum', 0, @(x) -127<=x && x<=127);
     p.addParamValue('periIndex', 5, @(x) x>=0 || x==-1);   %x>=5 pulls an image
-    p.addParamValue('periAlpha', 1, @(x) x>=0 && x<=1);
+    p.addParamValue('periAlpha', 1, @(x) x>=-1 && x<=1);
     p.addParamValue('periMeanLum', 0, @(x) -127<=x && x<=127);
 
     % Call the parse method of the object to read and validate each argument in the schema:
