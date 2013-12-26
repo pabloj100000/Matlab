@@ -2,41 +2,52 @@ function nextRun()
 
 try
     Add2StimLogList();
-%    Wait2Start()
+    Wait2Start()
 
 %    RF('movieDurationSecs', 1000)
-    pause(.2)
+%    pause(.2)
 
-    StableObject2();
+    StableObject2('barsWidth', PIXELS_PER_100_MICRONS/2);
     
-    PL = 1;
+    PL = 100;
     newCheckerCenter = [16.5 16.5];
     maskRadia = 6*PIXELS_PER_100_MICRONS;
-    sz = 4*PIXELS_PER_100_MICRONS/2;
+    sz = PIXELS_PER_100_MICRONS/2;
+    rwSize = 0;
     images = [0 7 10 12 14 18];
     alphas = [.025 .05 .1 .2 .4];
     for block=0:1
         % Sky doesn't dissapear
         SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1, 'objMeanLum', -127, ...
             'periIndex', -1, 'presentationLength', PL, 'pdMode',1, ...
-            'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter);
+            'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter, ...
+            'rwStepSize', rwSize);
         SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1, 'objMeanLum', 0, ...
             'periIndex', -1, 'presentationLength', PL, 'pdMode',1, ...
-            'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter);
+            'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter, ...
+            'rwStepSize', rwSize);
         SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1, 'objMeanLum', 127, ...
             'periIndex', -1, 'presentationLength', PL, 'pdMode',1, ...
-            'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter);
+            'saccadeSize', sz, 'maskRadia', maskRadia, 'center', newCheckerCenter, ...
+            'rwStepSize', rwSize);
 
         for i=1:length(images)
-            % Object plus full contrast periphery
+            % black Object plus full contrast periphery
             SaccadesAndFEM('objAlpha', 0, 'presentationLength', PL, 'periIndex',...
                 images(i), 'objIndex', images(i), 'pdMode',1, 'saccadeSize', sz, ...
-                'maskRadia', maskRadia, 'center', newCheckerCenter, 'periAlpha', -1);
+                'maskRadia', maskRadia, 'center', newCheckerCenter, 'periAlpha', 1, ...
+                'rwStepSize', rwSize, 'objMeanLum', -127);
+
+            % white Object plus full contrast periphery
+            SaccadesAndFEM('objAlpha', 0, 'presentationLength', PL, 'periIndex',...
+                images(i), 'objIndex', images(i), 'pdMode',1, 'saccadeSize', sz, ...
+                'maskRadia', maskRadia, 'center', newCheckerCenter, 'periAlpha', 1, ...
+                'rwStepSize', rwSize, 'objMeanLum', 127);
             if (KbCheck)
                 break
             end
         end
-% {        
+%{        
         for i=1:length(images)
             nextImage = mod(i, length(images))+1;
             for j = 1:length(alphas)

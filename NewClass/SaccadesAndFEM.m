@@ -66,7 +66,7 @@ try
     objectIm = imread([folder, 'image', num2str(objIndex), '.jpg']) + objMeanLum;
     if (objAlpha<0)
         objectIm = (ojbectIm>screen.gray+objMeanLum)*255;
-        objAlpha=-objAlpha;
+        objAlpha=1;
     end
     objectTex = maskMatrix(objectIm, maskRadia, saccadeSize, 1, centerShape);
     backTex = GetBackground(maskRadia-1, saccadeSize, periMeanLum, objMeanLum, centerShape); % the -1 is to avoid an edge problem. Take it out and see for yourself
@@ -75,7 +75,7 @@ try
         peripheryIm = imread([folder, 'image', num2str(periIndex),'.jpg']) + periMeanLum;
         if (periAlpha<0)
             peripheryIm = (peripheryIm>screen.gray+periMeanLum)*255;
-            periAlpha=-periAlpha;
+            periAlpha=1;
         end
     else
         peripheryIm = GetCheckers(objectIm, checkersSize);
