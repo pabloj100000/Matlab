@@ -74,7 +74,8 @@ try
     if (periIndex >=0)
         peripheryIm = imread([folder, 'image', num2str(periIndex),'.jpg']) + periMeanLum;
         if (periAlpha<0)
-            peripheryIm = (peripheryIm>screen.gray+periMeanLum)*255;
+            peripheryIm = (peripheryIm>mean(peripheryIm(:))+periMeanLum)*255;
+%            peripheryIm = (peripheryIm>screen.gray+periMeanLum)*255;
             periAlpha=1;
         end
     else
