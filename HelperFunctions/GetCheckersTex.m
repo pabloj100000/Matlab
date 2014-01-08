@@ -1,4 +1,4 @@
-function Tex = GetCheckersTex(stimSize, barsWidth, Contrast)
+function Tex = GetCheckersTex(stimSize, barsWidth)
 % Usage: Tex = GetCheckersTex(stimSize, barsWidth, screen, Contrast)
     global screen
     Add2StimLogList();
@@ -12,8 +12,7 @@ function Tex = GetCheckersTex(stimSize, barsWidth, Contrast)
     x = mod(floor(x/barsWidth),2);
     y = mod(floor(y/barsWidth),2);
     bars = x.*y + ~x.*~y;
-    bars = bars*2*screen.gray*Contrast...
-        + screen.gray*(1-Contrast);
+    bars = bars*255;
     Tex{1} = Screen('MakeTexture', screen.w, bars);
 end
 

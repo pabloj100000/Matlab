@@ -63,6 +63,7 @@ try
     if (~isdir(folder))
         folder = '/Users/baccuslab/Desktop/stimuli/Pablo/Images/'; % D239 stimulus desktop's path
     end
+    
     objectIm = imread([folder, 'image', num2str(objIndex), '.jpg']) + objMeanLum;
     if (objAlpha<0)
         objectIm = (ojbectIm>screen.gray+objMeanLum)*255;

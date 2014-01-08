@@ -63,6 +63,7 @@ try
     if (~isdir(folder))
         folder = '/Users/baccuslab/Desktop/stimuli/Pablo/Images/'; % D239 stimulus desktop's path
     end
+    
     objectIm = imread([folder, 'image', num2str(objIndex), '.jpg']) + objMeanLum;
     if (objAlpha<0)
         objectIm = (ojbectIm>screen.gray+objMeanLum)*255;
@@ -74,7 +75,8 @@ try
     if (periIndex >=0)
         peripheryIm = imread([folder, 'image', num2str(periIndex),'.jpg']) + periMeanLum;
         if (periAlpha<0)
-            peripheryIm = (peripheryIm>screen.gray+periMeanLum)*255;
+            peripheryIm = (peripheryIm>mean(peripheryIm(:))+periMeanLum)*255;
+%            peripheryIm = (peripheryIm>screen.gray+periMeanLum)*255;
             periAlpha=1;
         end
     else

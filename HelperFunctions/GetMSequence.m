@@ -1,4 +1,13 @@
 function GetMSequence(base, codeLength, varargin)
+% This functions generates a text file with all M sequences using base and
+% code length.
+% For example, GetMSequence(4, 2) generates file MSequence_4_2.txt
+%   one of those entries is: 0 1 2 3 0 2 0 3 1 3 3 2 2 1 1 0
+%   which has 16 numbers, 4 times each number in the [0-4) range
+%   converting consecutive numbers to a single number gives
+%   0 1 2 3 0 2 0 3 1 3 3 2 2 1 1 0
+%   1 6 11 12 2 8 3 13 7 15 14 10 9 5 4 0
+
     % varargin{1}:  available
     % varargin{2}:  seq
     % varargin{3}:  fid
