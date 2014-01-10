@@ -71,8 +71,8 @@ function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, 
             objColor = (rand(randomStream, checkersH, checkersV)>.5)*2*screen.gray*objContrast...
                 + screen.gray*(1-objContrast);
         elseif (strcmp(noise.type, 'gaussian'))
-            objColor = randn(randomStream, checkersH, checkersV)*screen.gray*.4 ...
-                + screen.gray
+            objColor = randn(randomStream, checkersH, checkersV)*screen.gray*.15 ...
+                + screen.gray;
         end
         objTex  = Screen('MakeTexture', screen.w, objColor);
         

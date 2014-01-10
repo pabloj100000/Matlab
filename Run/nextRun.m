@@ -8,6 +8,9 @@ try
     StableObject5('trialsPerBlock', 2);
     pause(.2)
 
+    RF('noiseType', 'gaussian', 'stimSize', 12*PIXELS_PER_100_MICRONS, ...
+        'checkerSize', 12*PIXELS_PER_100_MICRONS)
+    pause(.2)
     
     RF('movieDurationSecs', 1000)
     pause(.2)
