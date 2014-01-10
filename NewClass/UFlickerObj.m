@@ -84,9 +84,9 @@ try
     if (isempty(backTex))
         clearBackTexFlag = 1;
         if (backPattern)
-            backTex = GetCheckersTex(stimSize+barsWidth, barsWidth, backContrast);
+            backTex = GetCheckersTex(stimSize+barsWidth, barsWidth);
         else
-            backTex = GetBarsTex(stimSize+barsWidth, barsWidth, backContrast);
+            backTex = GetBarsTex(stimSize+barsWidth, barsWidth);
         end
     else
         clearBackTexFlag = 0;
@@ -148,7 +148,7 @@ try
     
     % for efficiency preallocate objSeq
     objSeq = ones(1, objJumpsPerPeriod);
-    
+[presentationsN framesN]    
     % Animationloop:
     for presentation = 1:presentationsN
 
