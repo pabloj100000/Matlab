@@ -11,7 +11,7 @@ function Textures = LoadAllTextures(images2load, textureSize)
     
     folder = '/Users/jadz/Documents/Notebook/Experiments/Simulations/Natural Images DB/RawData/cd01A/'; % my laptop's path
     if (~isdir(folder))
-        folder = '/Users/baccuslab/Desktop/stimuli/Pablo/Images/'; % D239 stimulus desktop's path
+        folder = '/Users/baccuslab/Desktop/stimuli/Pablo/Natural Images DB/cd01A/'; % D239 stimulus desktop's path
     end
     
 

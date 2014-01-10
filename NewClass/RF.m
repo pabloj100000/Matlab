@@ -16,7 +16,7 @@ function RF(varargin)
     checkerSize = p.Results.checkerSize;
     waitframes = p.Results.waitframes;
     objCenterXY = p.Results.objCenterXY;
-
+    noise.type = p.Results.noiseType;
 try
     InitScreen(0);
     Add2StimLogList();
@@ -45,8 +45,8 @@ try
     Screen('FillRect', screen.w, screen.gray);
 
     % Animationloop:
-    BinaryCheckers(framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
-        randomStream, pd, whiteFrames, objRect);
+    RandomCheckers(framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
+        randomStream, pd, whiteFrames, objRect, noise);
 
     FinishExperiment();
     
@@ -58,8 +58,8 @@ catch exception
 end %try..catch..
 end
 
-function [exitFlag] = BinaryCheckers(framesN, waitframes, checkersV, checkersH, ...
-    objContrast, randomStream, pd, whiteFrames, objRect)
+function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, ...
+    objContrast, randomStream, pd, whiteFrames, objRect, noise)
     global screen
 
     
@@ -67,8 +67,13 @@ function [exitFlag] = BinaryCheckers(framesN, waitframes, checkersV, checkersH, 
 
         
         % Make a new obj texture
-        objColor = (rand(randomStream, checkersH, checkersV)>.5)*2*screen.gray*objContrast...
-            + screen.gray*(1-objContrast);
+        if (strcmp(noise.type, 'binary'));
+            objColor = (rand(randomStream, checkersH, checkersV)>.5)*2*screen.gray*objContrast...
+                + screen.gray*(1-objContrast);
+        elseif (strcmp(noise.type, 'gaussian'))
+            objColor = randn(randomStream, checkersH, checkersV)*screen.gray*.4 ...
+                + screen.gray
+        end
         objTex  = Screen('MakeTexture', screen.w, objColor);
         
         % display last texture
@@ -102,7 +107,6 @@ function [exitFlag] = BinaryCheckers(framesN, waitframes, checkersV, checkersH, 
         exitFlag = 1;
     end
 end
-
 
 
 function p =  ParseInput(varargin)
@@ -142,6 +146,8 @@ function p =  ParseInput(varargin)
     p.addParamValue('waitframes', round(.033*frameRate), @(x)isnumeric(x)); 
     p.addParamValue('objCenterXY', [0 0], @(x) size(x) == [1 2]);
     p.addParamValue('pdStim', 0, @(x) isnumeric(x));
+    p.addParamValue('noiseType', 'binary', @(x) strcmp(x,'binary') || ...
+        strcmp(x,'gaussian'));
     
     % Call the parse method of the object to read and validate each argument in the schema:
     p.parse(varargin{:});
