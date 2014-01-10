@@ -15,18 +15,6 @@ function InitScreen(debugging, varargin)
         return
     end
 
-    screen.rate = Screen('NominalFrameRate', max(Screen('Screens')));
-    if screen.rate==0
-        screen.rate=100;
-    end
-    if mod(screen.rate,2)
-        answer = questdlg(['Screen Rate is a non (', num2str(screen.rate), ...
-            'Hz). Do you want to continue or abort?'], 'Frame Rate', 'Abort', 'Continue', 'Abort');
-        if strcmp(answer, 'Abort')
-            error('Change the monitor rate');
-        end
-    end
-
     % write which function initialized the screen. So that we know when to
     % close it.
     s = dbstack('-completenames');
@@ -66,10 +54,23 @@ function InitScreen(debugging, varargin)
     end
 
     %    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
-    [screen.center(1) screen.center(2)] = WindowCenter(screen.w)%[screenX screenY]/2;
+    [screen.center(1) screen.center(2)] = WindowCenter(screen.w);%[screenX screenY]/2;
 
     % Query duration of monitor refresh interval:
     screen.ifi=Screen('GetFlipInterval', screen.w);
+
+    screen.rate = Screen('NominalFrameRate', max(Screen('Screens')));
+    if screen.rate==0
+        screen.rate = round(1/screen.ifi);
+    end
+    
+    if mod(screen.rate,2)
+        answer = questdlg(['Screen Rate is a non (', num2str(screen.rate), ...
+            'Hz). Do you want to continue or abort?'], 'Frame Rate', 'Abort', 'Continue', 'Abort');
+        if strcmp(answer, 'Abort')
+            error('Change the monitor rate');
+        end
+    end
 
     [scree.width scree.height] = Screen('WindowSize', max(Screen('Screens')));
     screen.vbl = 0;

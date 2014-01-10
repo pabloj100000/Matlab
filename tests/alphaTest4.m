@@ -1,1 +1,0 @@
-InitScreen(0)
