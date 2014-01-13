@@ -13,7 +13,7 @@ try
     p.addParamValue('objLums', DefaultObjLums(), @(x) isnumeric(x) && size(x,3)>=1);
     p.addParamValue('checkersSize', PIXELS_PER_100_MICRONS/2, @(x) x>0);
     p.addParamValue('stimSize', 768, @(x) x>0);
-    p.addParamValue('blocksN', 3, @(x) x>0);
+    p.addParamValue('blocksN', 4, @(x) x>0);
     p.addParamValue('trialsPerBlock', 110, @(x) x>0);
     p.addParamValue('saccadeRate', 1, @(x) x>0);   % in Hz
     p.addParamValue('objSize', 12*PIXELS_PER_100_MICRONS, @(x) x>0);   % in Hz
@@ -36,8 +36,10 @@ try
     % Define some variables
     
     
-    % adjust stimSize to be an integer number of checkers
-    stimSize = floor(stimSize/checkersSize/2)*checkersSize*2;
+    % adjust stimSize to be an even number of checkers
+    checkersN = floor(stimSize/checkersSize/2);
+    stimSize = checkersN*checkersSize*2;
+    
     if (stimSize<1.5*objSize)
         stimSize = 768;
     end
@@ -53,7 +55,6 @@ try
     % Define the rectangles
     periDestRect = SetRect(0, 0, stimSize, stimSize);
     periDestRect = CenterRect(periDestRect, screen.rect);
-    periSourceRect = SetRect(0, 0, stimSize/checkersSize, stimSize/checkersSize);
     
     objDestRect = SetRect(0, 0, objSize, objSize);
     objDestRect = CenterRect(objDestRect, screen.rect);
@@ -79,9 +80,11 @@ try
 
     for block=1:blocksN
         objectOrder = randperm(seqStream, objectN);
+        periSourceRect = SetRect(0, 0, stimSize/checkersSize, stimSize/checkersSize) + mod(block,2)*[1 0 1 0];
         for i=1:objectN
             object = objectOrder(i);
             periAlphas = (randperm(periStream, 2)-1)*periAlpha;
+% {
             for peri=1:2
                 alpha = periAlphas(peri);
                 for trial = 1:trialsPerBlock
@@ -91,7 +94,7 @@ try
                         elseif (frame==framesPerSaccade/2+1)
                             offset = [1 0 1 0]*checkersSize;
                         end
-% {                        
+                        
                         % enable alpha blending
                         Screen('BlendFunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                         
@@ -139,6 +142,7 @@ try
             if (KbCheck())
                 break
             end
+                        %}
         end
         if (KbCheck())
             break
