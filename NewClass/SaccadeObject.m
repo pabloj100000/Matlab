@@ -1,4 +1,4 @@
-function StableObject5(varargin)
+function SaccadeObject(varargin)
     % objLums should be a 3D array of luminance values for each object.
     % texture i will be created out of objLums(:, :, i) and it will
     % be stretched to fill the object
@@ -40,8 +40,11 @@ try
     checkersN = floor(stimSize/checkersSize/2);
     stimSize = checkersN*checkersSize*2;
     
+    % adjust object size to be an even number of checkers
+    objSize = 2*checkersSize*floor(objSize/checkersSize/2);
+    
     if (stimSize<1.5*objSize)
-        stimSize = 768;
+%        stimSize = 768;
     end
     
     % create all the center textures;
@@ -61,8 +64,8 @@ try
     
     % offset both destination rectangles such that when saccading back and
     % forth they straddle the center of the screen
-    objDestRect = OffsetRect(objDestRect, -checkersSize/2+1, 0);
-    periDestRect = OffsetRect(periDestRect, -checkersSize/2, 0);
+    objDestRect = floor(OffsetRect(objDestRect, -checkersSize/2, 0));
+    periDestRect = floor(OffsetRect(periDestRect, -checkersSize/2, 0));
     
     texture = GetCheckersTex(stimSize/checkersSize+1, 1);
     
@@ -77,14 +80,19 @@ try
     % init random seed generator
     seqStream = RandStream('mcg16807', 'Seed', 1);
     periStream = RandStream('mcg16807', 'Seed', 1);
-
+%objects = [];
+%peris=[];
+%periPhase=[];
     for block=1:blocksN
         objectOrder = randperm(seqStream, objectN);
+%objects = [objects objectOrder]
         periSourceRect = SetRect(0, 0, stimSize/checkersSize, stimSize/checkersSize) + mod(block,2)*[1 0 1 0];
+%periPhase=[periPhase mod(block, 2)]        
         for i=1:objectN
             object = objectOrder(i);
             periAlphas = (randperm(periStream, 2)-1)*periAlpha;
-% {
+%peris = [peris periAlphas]
+            % {
             for peri=1:2
                 alpha = periAlphas(peri);
                 for trial = 1:trialsPerBlock
@@ -161,8 +169,14 @@ end %try..catch..end
 end
 
 function objLums = DefaultObjLums()
-    objLums = ones(1, 3, 9);
-    for i=1:9
-        objLums(1, :, i) = [1 -1 1]*(i-4) + 127;
+    objectsN = 9;       % has to be odd
+    barsN = 5;
+    objLums = ones(1, barsN, objectsN);
+    bars = (-1).^(0:barsN-1);
+    bars(1)=0;
+    bars(barsN)=0;
+
+    for i=1:objectsN
+        objLums(1, :, i) = bars*(i-floor(objectsN/2)) + 127;
     end
 end
