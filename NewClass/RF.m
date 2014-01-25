@@ -13,7 +13,8 @@ function RF(varargin)
     seed  = p.Results.seed;
     movieDurationSecs = p.Results.movieDurationSecs;
     stimSize = p.Results.stimSize;
-    checkerSize = p.Results.checkerSize;
+    checkerSizeX = p.Results.checkerSizeX;
+    checkerSizeY = p.Results.checkerSizeY;
     waitframes = p.Results.waitframes;
     objCenterXY = p.Results.objCenterXY;
     noise.type = p.Results.noiseType;
@@ -21,11 +22,11 @@ try
     InitScreen(0);
     Add2StimLogList();
 
-    checkersN_H = ceil(stimSize/checkerSize);
-    checkersN_V = checkersN_H;
+    checkersN_H = ceil(stimSize(1)/checkerSizeX);
+    checkersN_V = ceil(stimSize(2)/checkerSizeY);
     
     % Define the obj Destination Rectangle
-    objRect = SetRect(0,0, checkersN_H, checkersN_V)*checkerSize;
+    objRect = SetRect(0,0, checkersN_H*checkerSizeX, checkersN_V*checkerSizeY);
     objRect = CenterRect(objRect, screen.rect);
     objRect = OffsetRect(objRect, objCenterXY(1), objCenterXY(2));
 
@@ -68,10 +69,10 @@ function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, 
         
         % Make a new obj texture
         if (strcmp(noise.type, 'binary'));
-            objColor = (rand(randomStream, checkersH, checkersV)>.5)*2*screen.gray*objContrast...
+            objColor = (rand(randomStream, checkersV, checkersH)>.5)*2*screen.gray*objContrast...
                 + screen.gray*(1-objContrast);
         elseif (strcmp(noise.type, 'gaussian'))
-            objColor = randn(randomStream, checkersH, checkersV)*screen.gray*.15 ...
+            objColor = randn(randomStream, checkersV, checkersH)*screen.gray*.15 ...
                 + screen.gray;
         end
         objTex  = Screen('MakeTexture', screen.w, objColor);
@@ -140,11 +141,12 @@ function p =  ParseInput(varargin)
     p.addParamValue('objContrast', 1, @(x) x>=0 && x<=1);
     p.addParamValue('seed', 1, @(x) isnumeric(x));
     p.addParamValue('movieDurationSecs', 1000, @(x)x>0);
-    p.addParamValue('stimSize', 32*PIXELS_PER_100_MICRONS, @(x)x>0);
+    p.addParamValue('stimSize', 32*PIXELS_PER_100_MICRONS*[1 1], @(x) all(size(x)==[1 2]) && all(x>0));
     p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
-    p.addParamValue('checkerSize', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParamValue('checkerSizeX', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParamValue('checkerSizeY', PIXELS_PER_100_MICRONS, @(x) x>0);
     p.addParamValue('waitframes', round(.033*frameRate), @(x)isnumeric(x)); 
-    p.addParamValue('objCenterXY', [0 0], @(x) size(x) == [1 2]);
+    p.addParamValue('objCenterXY', [0 0], @(x) all(size(x) == [1 2]));
     p.addParamValue('pdStim', 0, @(x) isnumeric(x));
     p.addParamValue('noiseType', 'binary', @(x) strcmp(x,'binary') || ...
         strcmp(x,'gaussian'));
