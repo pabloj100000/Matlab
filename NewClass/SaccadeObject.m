@@ -22,7 +22,7 @@ try
 
     p.parse(varargin{:});
 
-    objLums = p.Results.objLums();
+    objLums = p.Results.objLums()
     checkersSize = p.Results.checkersSize;
     stimSize = p.Results.stimSize;
     blocksN = p.Results.blocksN;
@@ -50,7 +50,7 @@ try
         objTexture{i} = Screen('MakeTexture', screen.w, objLums(:,:,i));
     end
     
-    objectN = size(objLums,3);
+    objectN = size(objLums,3)
     
     % Define the rectangles
     periDestRect = SetRect(0, 0, stimSize, stimSize);
@@ -161,8 +161,8 @@ end %try..catch..end
 end
 
 function objLums = DefaultObjLums()
-    objLums = ones(1, 3, 9);
+    objLums = ones(1, 5, 9);
     for i=1:9
-        objLums(1, :, i) = [1 -1 1]*(i-4) + 127;
+        objLums(1, :, i) = [0 -1 1 -1 0]*(i-4) + 127;
     end
 end
