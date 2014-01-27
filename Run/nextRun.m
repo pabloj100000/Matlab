@@ -4,16 +4,18 @@ try
     Add2StimLogList();
     Wait2Start()
 
-    % Stable object 
-    StableObject5('trialsPerBlock', 2);
-    pause(.2)
-
-    RF('noiseType', 'gaussian', 'stimSize', 12*PIXELS_PER_100_MICRONS, ...
-        'checkerSize', 12*PIXELS_PER_100_MICRONS)
-    pause(.2)
-    
     RF('movieDurationSecs', 1000)
     pause(.2)
+
+    SaccadeObject_RF(12*PIXELS_PER_100_MICRONS, 0.5*PIXELS_PER_100_MICRONS, 600)
+    pause(.2)
+    
+    % Stable object 
+    SaccadeObject('trialsPerBlock', 110);
+    pause(.2)
+
+    pause(.2)
+    
     
     FinishExperiment();
     

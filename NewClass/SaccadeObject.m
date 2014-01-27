@@ -170,9 +170,9 @@ end
 
 function objLums = DefaultObjLums()
     objectsN = 9;       % has to be odd
-    barsN = 5;
+    barsN = 6;
     objLums = ones(1, barsN, objectsN);
-    bars = (-1).^(0:barsN-1);
+    bars = [0 -1 1 -1 1 0];
     bars(1)=0;
     bars(barsN)=0;
 
