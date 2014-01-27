@@ -22,7 +22,7 @@ try
 
     p.parse(varargin{:});
 
-    objLums = p.Results.objLums();
+    objLums = p.Results.objLums()
     checkersSize = p.Results.checkersSize;
     stimSize = p.Results.stimSize;
     blocksN = p.Results.blocksN;
@@ -53,7 +53,7 @@ try
         objTexture{i} = Screen('MakeTexture', screen.w, objLums(:,:,i));
     end
     
-    objectN = size(objLums,3);
+    objectN = size(objLums,3)
     
     % Define the rectangles
     periDestRect = SetRect(0, 0, stimSize, stimSize);
