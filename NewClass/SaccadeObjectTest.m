@@ -1,4 +1,4 @@
-function SaccadeObject(varargin)
+function SaccadeObjectTest(varargin)
     % objLums should be a 3D array of luminance values for each object.
     % texture i will be created out of objLums(:, :, i) and it will
     % be stretched to fill the object
@@ -84,16 +84,16 @@ try
 %peris=[];
 %periPhase=[];
     for block=1:blocksN
-        objectOrder = randperm(seqStream, objectN);
+        objectOrder = 1:objectN;%randperm(seqStream, objectN);
 %objects = [objects objectOrder]
         periSourceRect = SetRect(0, 0, stimSize/checkersSize, stimSize/checkersSize) + mod(block,2)*[1 0 1 0];
 %periPhase=[periPhase mod(block, 2)]        
         for i=1:objectN
             object = objectOrder(i);
-            periAlphas = (randperm(periStream, 2)-1)*periAlpha;
+            periAlphas = 1;%(randperm(periStream, 2)-1)*periAlpha;
 %peris = [peris periAlphas]
             % {
-            for peri=1:2
+            for peri=1:1
                 alpha = periAlphas(peri);
                 for trial = 1:trialsPerBlock
                     for frame=1:framesPerSaccade;
