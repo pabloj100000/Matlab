@@ -22,8 +22,8 @@ try
     InitScreen(0);
     Add2StimLogList();
 
-    checkersN_H = ceil(stimSize(1)/checkerSizeX);
-    checkersN_V = ceil(stimSize(2)/checkerSizeY);
+    checkersN_H = ceil(stimSize(1)/checkerSizeX)
+    checkersN_V = ceil(stimSize(2)/checkerSizeY)
     
     % Define the obj Destination Rectangle
     objRect = SetRect(0,0, checkersN_H*checkerSizeX, checkersN_V*checkerSizeY);
@@ -72,6 +72,8 @@ function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, 
             objColor = (rand(randomStream, checkersV, checkersH)>.5)*2*screen.gray*objContrast...
                 + screen.gray*(1-objContrast);
         elseif (strcmp(noise.type, 'gaussian'))
+%            objColor = randn(randomStream, checkersV, checkersH)
+            
             objColor = randn(randomStream, checkersV, checkersH)*screen.gray*.15 ...
                 + screen.gray;
         end

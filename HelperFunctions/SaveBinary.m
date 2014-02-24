@@ -9,6 +9,9 @@ function SaveBinary(obj, precision, varargin)
 
     if (nargin==3)
         nameout = varargin{1};
+        if (isempty(regexp(nameout, 'bin$', 'ONCE')))
+            nameout = [nameout, '.bin'];
+        end
     else
         nameout = [inputname(1), '.bin'];
     end
