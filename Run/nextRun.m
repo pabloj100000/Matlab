@@ -7,17 +7,21 @@ try
     RF('movieDurationSecs', 1600)
     pause(.2)
  
-%    SaccadeObject_RF(12*PIXELS_PER_100_MICRONS, 0.5*PIXELS_PER_100_MICRONS, 600)
+    SaccadeObject_RF(12*PIXELS_PER_100_MICRONS, 0.5*PIXELS_PER_100_MICRONS, 600)
     pause(.2)
     
     % Stable object 
-    objLums = ObjLums2();
+    objLums = ObjLums1();
     SaccadeObject('trialsPerBlock', length, 'objLums', objLums, 'blocksN',4);
     pause(.2)
 
-%    SaccadeObject_RF(12*PIXELS_PER_100_MICRONS, 0.5*PIXELS_PER_100_MICRONS, 600)
-%    TNF('peripheryStep',PIXELS_PER_100_MICRONS/2, 'checkersSize', PIXELS_PER_100_MICRONS/2);
+    SaccadeObject_RF(12*PIXELS_PER_100_MICRONS, 0.5*PIXELS_PER_100_MICRONS, 600)
+    TNF('peripheryStep',PIXELS_PER_100_MICRONS/2, 'checkersSize', PIXELS_PER_100_MICRONS/2);
      
+    objLums = ObjLums2();
+    SaccadeObject('trialsPerBlock', length/2, 'objLums', objLums, 'blocksN',4);
+    pause(.2)
+
     FinishExperiment();
     
 catch exception
@@ -30,7 +34,7 @@ end %try..catch..
 end
 
 function objLums = ObjLums1()
-    barsN = 12;
+    barsN = 24;
     luminance = [0 31 64 127 255];
     objectsN=length(luminance);
     objLums = ones(1, barsN, objectsN);
@@ -44,7 +48,7 @@ function objLums = ObjLums1()
 end
 
 function objLums = ObjLums2()
-    barsN = 12;
+    barsN = 24;
     colors = [-127 -63 -31 -15 -7 -3 -1 0 1 3 7 15 31 63 127];
     objectsN = length(colors);
     objLums = ones(1, barsN, objectsN);
