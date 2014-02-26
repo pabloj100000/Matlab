@@ -17,8 +17,8 @@ try
     p.addParamValue('trialsPerBlock', 110, @(x) x>0);
     p.addParamValue('saccadeRate', 1, @(x) x>0);   % in Hz
     p.addParamValue('objSize', 12*PIXELS_PER_100_MICRONS, @(x) x>0);   % in Hz
-    p.addParamValue('periLum', 127, @(x) x>=0 && x<=255);
-    p.addParamValue('periAlpha', 1, @(x) x>=0);
+%    p.addParamValue('periLum', 127, @(x) x>=0 && x<=255);
+%    p.addParamValue('periAlpha', 1, @(x) x>=0);
 
     p.parse(varargin{:});
 
@@ -29,8 +29,8 @@ try
     trialsPerBlock = p.Results.trialsPerBlock;
     saccadeRate = p.Results.saccadeRate;
     objSize = p.Results.objSize;
-    periLum = p.Results.periLum;
-    periAlpha = p.Results.periAlpha;
+%    periLum = p.Results.periLum;
+%    periAlpha = p.Results.periAlpha;
     
     %%%%%%%%%%%%%% Input Parser Ends %%%%%%%%%%%%%%%%
     % Define some variables
@@ -44,7 +44,7 @@ try
     objSize = 2*checkersSize*floor(objSize/checkersSize/2);
     
     if (stimSize<1.5*objSize)
-%        stimSize = 768;
+        stimSize = 768;
     end
     
     % create all the center textures;
@@ -71,7 +71,7 @@ try
     
     pd = DefinePD;
     
-    waitFrames = 2;
+    waitFrames = round(.02/screen.ifi);
     framesPerSaccade = screen.rate/saccadeRate/waitFrames;
     if (mod(framesPerSaccade,2));
         framesPerSaccade = framesPerSaccade+1;
@@ -90,33 +90,36 @@ try
 %periPhase=[periPhase mod(block, 2)]        
         for i=1:objectN
             object = objectOrder(i);
-            periAlphas = (randperm(periStream, 2)-1)*periAlpha;
+%            periAlphas = (randperm(periStream, 2)-1)*periAlpha;
+            saccadingOrder = (randperm(periStream, 2)-1);
 %peris = [peris periAlphas]
             % {
             for peri=1:2
-                alpha = periAlphas(peri);
+                saccadingFlag = saccadingOrder(peri);
                 for trial = 1:trialsPerBlock
                     for frame=1:framesPerSaccade;
                         if (frame==1)
-                            offset = [0 0 0 0];
+                            objOffset = [0 0 0 0];
+                            periOffset = [0 0 0 0];
                         elseif (frame==framesPerSaccade/2+1)
-                            offset = [1 0 1 0]*checkersSize;
+                            objOffset = [1 0 1 0]*checkersSize;
+                            periOffset = objOffset*saccadingFlag;
                         end
                         
                         % enable alpha blending
-                        Screen('BlendFunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+%                        Screen('BlendFunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                         
                         % Draw peri luminance values
-                        Screen('FillRect', screen.w, periLum, periDestRect+offset);
+%                        Screen('FillRect', screen.w, periLum, periDestRect+offset);
                         
                         % draw peri textures
-                        Screen('DrawTexture', screen.w, texture{1}, periSourceRect, periDestRect+ offset, 0, 0, alpha);
+                        Screen('DrawTexture', screen.w, texture{1}, periSourceRect, periDestRect + periOffset,0, 0);
                         
                         % disable alpha blending
-                        Screen('BlendFunction', screen.w, GL_ONE, GL_ZERO);
+%                        Screen('BlendFunction', screen.w, GL_ONE, GL_ZERO);
                         
                         % draw center
-                        Screen('DrawTexture', screen.w, objTexture{object}, [], objDestRect+offset, 0, 0);
+                        Screen('DrawTexture', screen.w, objTexture{object}, [], objDestRect+objOffset, 0, 0);
                         
                         if (frame==1)
                             pdColor = 255;

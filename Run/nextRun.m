@@ -35,7 +35,24 @@ end
 
 function objLums = ObjLums1()
     barsN = 24;
-    luminance = [0 31 64 127 255];
+    luminanceN = 5;
+    stepsN = luminanceN-1;
+    meanLum = 127;
+    maxLum = 2*meanLum;
+
+    % I want to go roughly from 127 (mean) to the maximum luminance (255)
+    % in luminanceN/2 steps. Therefore 127*b^(N/2) = 255 and from this I
+    % have b^(N/2) = 255/127 and N/2*log(b) = log(2) and log(b) =
+    % log(2)*2/N and b = exp(log(2)*2/N)
+    newBase = exp(log(2)*2/stepsN);      % one of the 2 comes from 255/127, the other cause I want half the steps above mean and half below the mean
+    
+    logMaxLum = log(maxLum)/log(newBase);
+    logMeanLum = log(127)/log(newBase);
+    logDelta = (logMaxLum-logMeanLum)/(stepsN/2);
+
+    luminance = logMaxLum-stepsN*logDelta:logDelta:logMaxLum;
+    luminance = round(newBase.^luminance);
+    
     objectsN=length(luminance);
     objLums = ones(1, barsN, objectsN);
     bars = ones(1, barsN);
