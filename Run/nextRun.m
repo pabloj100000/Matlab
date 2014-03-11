@@ -60,8 +60,8 @@ function objLums = ObjLums1()
     for i=1:objectsN
         objLums(1, :, i) = bars*luminance(i);    
     end
-    objLums(1, 1, :) = 127;
-    objLums(1, barsN, :) = 127;
+%    objLums(1, 1, :) = 127;
+%    objLums(1, barsN, :) = 127;
 end
 
 function objLums = ObjLums2()
