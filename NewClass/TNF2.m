@@ -11,13 +11,14 @@ global screen
 try
     % process Input variables
     p = ParseInput(varargin{:});
+    
     waitframes = p.Results.waitframes;
     seed = p.Results.seed;
     presentationLength = p.Results.presentationLength;
     checkersSize = p.Results.checkersSize;
     saccadeLength = p.Results.saccadeLength;
     stimSize = p.Results.stimSize;
-    trialsN = p.Results.trialsN;
+    trialsN = p.Results.trialsN;        
     objSize = p.Results.objSize;
     
     % start the stimulus
@@ -50,6 +51,10 @@ try
     % make framesN an integer number of framesPerSaccade
     saccadesN = round(framesN/framesPerSaccade);
 %    framesN = saccadesN*framesPerSaccade;
+    
+    % make sure that trialsN is even to get equal number of conditions with
+    % peripheral phase A and B
+    trialsN = 2*ceil(trialsN/2);
     
     % Define the object order sequence. 
     S1 = RandStream('mcg16807', 'Seed',seed);
@@ -159,7 +164,6 @@ function p = ParseInput(varargin)
     end
     
     % Object related
-    p.addParamValue('objContrast', .1, @(x) x>=0 && x<=1);
     p.addParamValue('objSize', 12*PIXELS_PER_100_MICRONS, @(x) x>=0);
 
     % Background related
@@ -171,12 +175,10 @@ function p = ParseInput(varargin)
 
     % General
     p.addParamValue('stimSize', screenY, @(x)x>0);
-    p.addParamValue('presentationLength', 200, @(x)x>0);
-    p.addParamValue('trialsN', 5);
+    p.addParamValue('presentationLength', 100, @(x)x>0);
+    p.addParamValue('trialsN', 50);
     p.addParamValue('checkersSize', PIXELS_PER_100_MICRONS, @(x)x>0);
     p.addParamValue('waitframes', round(rate/30), @(x)isnumeric(x));         
-    p.addParamValue('repeatCenter', 1, @(x) isnumeric(x));         
-    p.addParamValue('pdMode', 0, @(x) x==0 || x==1);         
 
     % Call the parse method of the object to read and validate each argument in the schema:
     p.parse(varargin{:});
