@@ -22,6 +22,15 @@ function InitScreen(debugging, varargin)
 
     AssertOpenGL;
 
+    % if Nominal rate is 0, (running from a laptop) Psychtoolbox is failing
+    % to initialize the screen because there are synchronization problems. I
+    % don't care about those problems when running in my laptop. Experiment
+    % would never be run under those conditions. Force it to start anyway
+    screen.rate = Screen('NominalFrameRate', 0);
+    if screen.rate==0
+        Screen('Preference', 'SkipSyncTests',1);
+    end
+
     % Get the list of screens and choose the one with the highest screen number.
     screenNumber=max(Screen('Screens'));
 
@@ -55,11 +64,10 @@ function InitScreen(debugging, varargin)
 
     %    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
     [screen.center(1) screen.center(2)] = WindowCenter(screen.w);%[screenX screenY]/2;
-
+    
     % Query duration of monitor refresh interval:
     screen.ifi=Screen('GetFlipInterval', screen.w);
 
-    screen.rate = Screen('NominalFrameRate', max(Screen('Screens')));
     if screen.rate==0
         screen.rate = round(1/screen.ifi);
     end
