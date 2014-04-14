@@ -1,9 +1,0 @@
-function centers = GetEveryOtherChecker(check1, check2)
-    checksN = ceil((check2-check1+1)^2/2);
-    centers = ones(2, checksN);
-    for i=check1:check2
-        for j=check1:check2
-            if mod(i+j-check1-check2,2)==0
-                centers(:, k)=i;
-                c
-end

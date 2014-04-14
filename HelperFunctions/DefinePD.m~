@@ -1,5 +1,0 @@
-function pd = DefinePD()
-    global screen
-    pd = SetRect(0,0, 20    0, 200);
-    pd = CenterRectOnPoint(pd, screen.rect(3)*.94, screen.rect(4)*.16);
-end
