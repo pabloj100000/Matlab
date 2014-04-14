@@ -37,7 +37,7 @@ try
 
     
     peripheryDest = SetRect(0,0,stimSize, stimSize);
-    peripheryDest = CenterRect(peripheryDest, screen.rect);
+    peripheryDest = CenterRect(peripheryDest, screen.rect-checkersSize/2*[1 1 1 1]);
 
     peripherySource = SetRect(0,0,checkersN, checkersN);
 
@@ -71,7 +71,10 @@ try
     phase1 = 0;        % used to produce saccades
     phase2 = 0;        % used to have consecutive repeats of the same stim with different peripheral phases
 
+    Screen('TextSize', screen.w, 12);
+    
     for trial = 0:trialsN-1
+        label{1} = ['trialN: ',num2str(trial)];
         for periMode=0:1
             % The following line guarantees that both periMode will have
             % the same phase2 but different than in the previous trial
@@ -79,8 +82,8 @@ try
                 phase2 = mod(phase2+1,2);
                 phase1 = 0;
             end
-            
             for saccade=1:saccadesN
+                label{2} = ['SaccadeN: ',num2str(saccade)];
                 if (periMode)
                     % saccading, change peripheral phase
                     phase1 = mod(phase1+1,2);
@@ -95,7 +98,7 @@ try
 %                [saccade contrastSeq(saccade) meanSeq(saccade)]
                 lumSeq = GetPinknoise(framesPerSaccade*saccade+1, framesPerSaccade, contrastSeq(saccade), meanSeq(saccade), 0);
                 
-                showOneSaccade(phase1+phase2, peripheryDest, peripherySource, objRect, lumSeq, pdMode, pd, checkerTexture{1}, waitframes)
+                showOneSaccade(phase1+phase2, peripheryDest, peripherySource, objRect, lumSeq, pdMode, pd, checkerTexture{1}, waitframes, label)
                 if KbCheck
                     break
                 end
@@ -124,7 +127,7 @@ catch exception
 end %try..catch..
 end
 
-function showOneSaccade(phase, peripheryDest, peripherySource, objRect, lumSeq, pdMode, pd, tex, waitframes)
+function showOneSaccade(phase, peripheryDest, peripherySource, objRect, lumSeq, pdMode, pd, tex, waitframes, label)
     global screen
     
     if (mod(phase,2))
@@ -132,7 +135,9 @@ function showOneSaccade(phase, peripheryDest, peripherySource, objRect, lumSeq, 
     end
     
     for frame=1:length(lumSeq)
-    
+        % write some numbers onto the screen
+        DrawMultiLineComment(screen, label);
+
         Screen('DrawTexture', screen.w, tex, peripherySource, peripheryDest, 0,0);
     
         color = lumSeq(frame);
@@ -177,7 +182,7 @@ function p = ParseInput(varargin)
     p.addParamValue('stimSize', screenY, @(x)x>0);
     p.addParamValue('presentationLength', 100, @(x)x>0);
     p.addParamValue('trialsN', 50);
-    p.addParamValue('checkersSize', PIXELS_PER_100_MICRONS, @(x)x>0);
+    p.addParamValue('checkersSize', PIXELS_PER_100_MICRONS/2, @(x)x>0);
     p.addParamValue('waitframes', round(rate/30), @(x)isnumeric(x));         
 
     % Call the parse method of the object to read and validate each argument in the schema:

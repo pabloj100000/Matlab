@@ -1,25 +1,16 @@
-function nextRun(length)
+function nextRun()
 
 try
     Add2StimLogList();
     Wait2Start()
 
-    RF('movieDurationSecs', 1600)
-    pause(.2)
- 
-    SaccadeObject_RF(12*PIXELS_PER_100_MICRONS, 0.5*PIXELS_PER_100_MICRONS, 600)
-    pause(.2)
-    
-    % Stable object 
-    objLums = ObjLums1();
-    SaccadeObject('trialsPerBlock', length, 'objLums', objLums, 'blocksN',4);
+    RF('movieDurationSecs', 1000)
     pause(.2)
 
-    SaccadeObject_RF(12*PIXELS_PER_100_MICRONS, 0.5*PIXELS_PER_100_MICRONS, 600)
-    TNF('peripheryStep',PIXELS_PER_100_MICRONS/2, 'checkersSize', PIXELS_PER_100_MICRONS/2);
-     
-    objLums = ObjLums2();
-    SaccadeObject('trialsPerBlock', length/2, 'objLums', objLums, 'blocksN',4);
+    TNF2
+    pause(.2)
+    
+    TNF_Gaussian([-1;-1], 1200,0, 'presentationLength', 100, 'config',5, 'trialsN',2)
     pause(.2)
 
     FinishExperiment();

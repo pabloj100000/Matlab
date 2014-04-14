@@ -12,9 +12,12 @@ function [objSeeds] = TNF_Gaussian(checkers, sizes, maskMode, varargin)
 %
 % config has 4 bits to change behaviour as follows:
 %   bit 0,     include TNF center with background
-%   bit 1,     include Gauss center with background
-%   bit 2,     include TNF center no background
+%   bit 1,     include TNF center no background
+%   bit 2,     include Gauss center with background
 %   bit 3,     include Gauss center no background
+%
+%   for example config=5 has both TNF and Gaussian with background but
+%   doesn't have the condition wihtout it.
 %
 % pdMode:   0,  pd is white only at 1st frame of every presentationLength
 %           1,  pd is white at every periphery reversal.
@@ -31,7 +34,7 @@ try
     shape = p.Results.shape;
     presentationLength = p.Results.presentationLength;
     checkersSize = p.Results.checkersSize;
-    backContrast = p.Results.backContrast;
+%    backContrast = p.Results.backContrast;
     backReverseFreq = p.Results.backReverseFreq;
     stimSize = p.Results.stimSize;
     trialsN = p.Results.trialsN;
@@ -47,7 +50,7 @@ try
     % get the background texture
     stimSize = 2*checkersSize*floor(stimSize/checkersSize/2);
     checkersN = floor(stimSize/checkersSize);
-    backTex = GetCheckersTex(checkersN+1, 1, backContrast);
+    backTex = GetCheckersTex(checkersN+1, 1);
     
     % I want framesN to have an even number of background reversals
     % 
@@ -61,9 +64,12 @@ try
         pdFrames = framesN;
     end
     
-    % Init the random stream
-    gaussianStream2 = RandStream('mcg16807', 'Seed',objSeeds(2));
+    % Init the random streams for gaussian stimulus. For pink there is no
+    % random sequence. The luminance are taken from a an already generated
+    % pink sequence 
+    gaussianStream3 = RandStream('mcg16807', 'Seed',objSeeds(3));
     gaussianStream4 = RandStream('mcg16807', 'Seed',objSeeds(4));
+    
     for trial = 0:trialsN-1
         
         phase = mod(trial,2);
@@ -80,19 +86,19 @@ try
                     case 0
                         reverseFreq = backReverseFreq;
                         objSeq = GetPinkNoise(objSeeds(1), framesN, objContrast, screen.gray, 0);
-                        objSeeds(1) = objSeeds(1)+framesN;
+                        objSeeds(1) = objSeeds(1)+framesN
                     case 1
-                        reverseFreq = backReverseFreq;
-                        objSeq = (randn(gaussianStream2,1, framesN)*objContrast*screen.gray+screen.gray)';
-                        objSeeds(2) = gaussianStream2.State;
-                    case 2
                         reverseFreq = 0;
-                        objSeq = GetPinkNoise(objSeeds(3), framesN, objContrast, screen.gray, 0);
-                        objSeeds(3) = objSeeds(3)+framesN;
+                        objSeq = GetPinkNoise(objSeeds(2), framesN, objContrast, screen.gray, 0);
+                        objSeeds(2) = objSeeds(2)+framesN
+                    case 2
+                        reverseFreq = backReverseFreq;
+                        objSeq = (randn(gaussianStream3,1, framesN)*objContrast*screen.gray+screen.gray)';
+                        objSeeds(3) = gaussianStream3.State
                     case 3
                         reverseFreq = 0;
                         objSeq = (randn(gaussianStream4,1, framesN)*objContrast*screen.gray+screen.gray)';
-                        objSeeds(4) = gaussianStream4.State;
+                        objSeeds(4) = gaussianStream4.State
                 end
                 
                 TemporalNaturalFlicker2(objSeq, reverseFreq, waitframes, ...

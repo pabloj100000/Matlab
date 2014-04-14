@@ -1,5 +1,4 @@
 function Tex = GetCheckersTex(stimSize, barsWidth)
-% Usage: Tex = GetCheckersTex(stimSize, barsWidth, screen, Contrast)
     global screen
     Add2StimLogList();
     
