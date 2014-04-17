@@ -20,6 +20,8 @@ try
     stimSize = p.Results.stimSize;
     trialsN = p.Results.trialsN;        
     objSize = p.Results.objSize;
+    tnfGaussianFlag = p.Results.tnfGaussianFlag;            % 0: TNF
+                                                            % 1: Gaussian
     
     % start the stimulus
     InitScreen(0)
@@ -51,17 +53,31 @@ try
     % make framesN an integer number of framesPerSaccade
     saccadesN = round(framesN/framesPerSaccade);
 %    framesN = saccadesN*framesPerSaccade;
-    
+
     % make sure that trialsN is even to get equal number of conditions with
     % peripheral phase A and B
     trialsN = 2*ceil(trialsN/2);
     
     % Define the object order sequence. 
     S1 = RandStream('mcg16807', 'Seed',seed);
-    meanSeq = 127 + 127*.1*randn(S1, saccadesN, 1);%randperm(S1, saccadesN);
-    maxContrast = 1/3*(255./meanSeq - 1);
+%    meanSeq = 127 + 127*.1*randn(S1, saccadesN, 1);%randperm(S1, saccadesN);
+    meanSeq = 127 + 127*(rand(S1, saccadesN,1)-.5);
+    % For each mean luminance, compute the maximum contrast allowed that
+    % will keep luminance in between 0 and 255. I am just solving for:
+    % 1. ? + 3sigma = 255   where sigma = C*?
+    % 2. ? - 3sigma = 0
+    % 
+    % 1. gives C = (255/?-1)/3
+    % 2. gives C = 1/3
+    %
+    % therefore C has to be contained between the minimum of 1/3 and
+    % (255/?-1)/3
+    maxContrast = min((255./meanSeq - 1)/3, 1/3);
     contrastSeq = gamrnd(2, maxContrast/10, size(meanSeq));%rand(S1, size(meanSeq)).*maxContrast;%GetPinkNoise(1, framesN, objContrast, screen.gray, 0);
 
+    % Reset the randomStream just in case I'm using Gaussian centers
+    S1.reset
+    
     % Define the PD box
     pd = DefinePD();
     
@@ -72,6 +88,8 @@ try
     phase2 = 0;        % used to have consecutive repeats of the same stim with different peripheral phases
 
     Screen('TextSize', screen.w, 12);
+    
+    label{2} = '';  % init the cell array to prevent worning message
     
     for trial = 0:trialsN-1
         label{1} = ['trialN: ',num2str(trial)];
@@ -96,8 +114,11 @@ try
                 end
                 
 %                [saccade contrastSeq(saccade) meanSeq(saccade)]
-                lumSeq = GetPinknoise(framesPerSaccade*saccade+1, framesPerSaccade, contrastSeq(saccade), meanSeq(saccade), 0);
-                
+                if (tnfGaussianFlag)
+                    lumSeq = meanSeq(saccade) + meanSeq(saccade)*contrastSeq(saccade)*randn(S1, 1, framesPerSaccade);
+                else
+                    lumSeq = GetPinknoise(framesPerSaccade*saccade+1, framesPerSaccade, contrastSeq(saccade), meanSeq(saccade), 0);
+                end
                 showOneSaccade(phase1+phase2, peripheryDest, peripherySource, objRect, lumSeq, pdMode, pd, checkerTexture{1}, waitframes, label)
                 if KbCheck
                     break
@@ -170,7 +191,10 @@ function p = ParseInput(varargin)
     
     % Object related
     p.addParamValue('objSize', 12*PIXELS_PER_100_MICRONS, @(x) x>=0);
-
+    p.addParamValue('tnfGaussianFlag', 0, @(x) isnumeric(x));   % 0: TNF
+                                                                % 1:
+                                                                % Gaussian
+    
     % Background related
     p.addParamValue('seed', 1, @(x) isnumeric(x) );
     p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
