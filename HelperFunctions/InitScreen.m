@@ -69,7 +69,8 @@ function InitScreen(debugging, varargin)
     screen.ifi=Screen('GetFlipInterval', screen.w);
 
     if screen.rate==0
-        screen.rate = round(1/screen.ifi);
+        screen.rate = 100;
+        screen.ifi=.01;
     end
     
     if mod(screen.rate,2)

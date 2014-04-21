@@ -16,12 +16,14 @@ try
     seed = p.Results.seed;
     presentationLength = p.Results.presentationLength;
     checkersSize = p.Results.checkersSize;
-    saccadeLength = p.Results.saccadeLength;
+    fixationLength = p.Results.fixationLength;
     stimSize = p.Results.stimSize;
     trialsN = p.Results.trialsN;        
     objSize = p.Results.objSize;
     tnfGaussianFlag = p.Results.tnfGaussianFlag;            % 0: TNF
                                                             % 1: Gaussian
+    contrastSeq = p.Results.contrastSeq;
+    meanSeq = p.Results.meanSeq;
     
     % start the stimulus
     InitScreen(0)
@@ -47,8 +49,8 @@ try
     framesN = round(presentationLength*screen.rate/waitframes);
 
     
-    % change saccadeLength into frames and force it to be an even number.
-    framesPerSaccade = round(saccadeLength*screen.rate/waitframes/2)*2;
+    % change fixationLength into frames and force it to be an even number.
+    framesPerSaccade = round(fixationLength*screen.rate/waitframes/2)*2;
     
     % make framesN an integer number of framesPerSaccade
     saccadesN = round(framesN/framesPerSaccade);
@@ -61,7 +63,13 @@ try
     % Define the object order sequence. 
     S1 = RandStream('mcg16807', 'Seed',seed);
 %    meanSeq = 127 + 127*.1*randn(S1, saccadesN, 1);%randperm(S1, saccadesN);
-    meanSeq = 127 + 127*(rand(S1, saccadesN,1)-.5);
+    if (isempty(meanSeq))
+        meanSeq = 127 + 127*(rand(S1, saccadesN,1)-.5);
+    else
+        if length(meanSeq)<saccadesN
+            error(['meanSeq needs to have at least ', num2str(saccadesN), ' points']);
+        end
+    end
     % For each mean luminance, compute the maximum contrast allowed that
     % will keep luminance in between 0 and 255. I am just solving for:
     % 1. ? + 3sigma = 255   where sigma = C*?
@@ -72,12 +80,15 @@ try
     %
     % therefore C has to be contained between the minimum of 1/3 and
     % (255/?-1)/3
-    maxContrast = min((255./meanSeq - 1)/3, 1/3);
-    contrastSeq = gamrnd(2, maxContrast/10, size(meanSeq));%rand(S1, size(meanSeq)).*maxContrast;%GetPinkNoise(1, framesN, objContrast, screen.gray, 0);
-
-    % Reset the randomStream just in case I'm using Gaussian centers
-    S1.reset
-    
+    if (isempty(contrastSeq))
+        maxContrast = min((255./meanSeq - 1)/3, 1/3);
+        contrastSeq = gamrnd(2, maxContrast/10, size(meanSeq));%rand(S1, size(meanSeq)).*maxContrast;%GetPinkNoise(1, framesN, objContrast, screen.gray, 0);
+    else
+        if length(contrastSeq)<saccadesN
+            error(['contrastSeq needs to have at least ', num2str(saccadesN), ' points']);
+        end
+    end
+        
     % Define the PD box
     pd = DefinePD();
     
@@ -100,6 +111,13 @@ try
                 phase2 = mod(phase2+1,2);
                 phase1 = 0;
             end
+            
+            if (tnfGaussianFlag)
+                % I want all trials with and without periphery to follow
+                % the same center sequence
+                S1.reset
+            end
+            
             for saccade=1:saccadesN
                 label{2} = ['SaccadeN: ',num2str(saccade)];
                 if (periMode)
@@ -194,11 +212,13 @@ function p = ParseInput(varargin)
     p.addParamValue('tnfGaussianFlag', 0, @(x) isnumeric(x));   % 0: TNF
                                                                 % 1:
                                                                 % Gaussian
+    p.addParamValue('contrastSeq', [], @(x) isnumeric(x) && size(x,1)<=1);
+    p.addParamValue('meanSeq', [], @(x) isnumeric(x) && size(x,1)<=1);
     
     % Background related
     p.addParamValue('seed', 1, @(x) isnumeric(x) );
     p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
-    p.addParamValue('saccadeLength', 1, @(x) x>=0);
+    p.addParamValue('fixationLength', 1, @(x) x>=0);
     p.addParamValue('backTexture', [], @(x) iscell(x));
     p.addParamValue('peripheryStep', 1, @(x) x>=0 && x<=PIXELS_PER_100_MICRONS);
 
