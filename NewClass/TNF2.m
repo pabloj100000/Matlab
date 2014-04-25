@@ -1,10 +1,11 @@
 function [seed] = TNF2(varargin)
-% Simulate objects undergoing FEM and saccades.
+% Simulate small objects and saccades.
 % Screen is divided in two, center and periphery.
-% Center follows a pink sequence and at times given by 'backReverseFreq'
-% the sequence in the center jumps to another point in the pink noise
-% sequence. At those same times the center jumps, the periphery might also
-% simulate a saccade or not. 
+% Center follows a gaussian sequence and at times given by 'backReverseFreq'
+% the sequence in the center jumps to another point with different luminance
+% and/or contrast.
+% At those same times the center jumps, the periphery might also
+% simulate a saccade. 
 
 global screen
     
@@ -14,16 +15,17 @@ try
     
     waitframes = p.Results.waitframes;
     seed = p.Results.seed;
-    presentationLength = p.Results.presentationLength;
+    resetFixationSeed = p.Results.resetFixationSeed;
+    resetBlockSeed = p.Results.resetBlockSeed;
     checkersSize = p.Results.checkersSize;
-    fixationLength = p.Results.fixationLength;
-    stimSize = p.Results.stimSize;
-    trialsN = p.Results.trialsN;        
     objSize = p.Results.objSize;
-    tnfGaussianFlag = p.Results.tnfGaussianFlag;            % 0: TNF
-                                                            % 1: Gaussian
-    contrastSeq = p.Results.contrastSeq;
-    meanSeq = p.Results.meanSeq;
+    stimSize = p.Results.stimSize;
+
+    fixationLength = p.Results.fixationLength;
+    blocksN = p.Results.blocksN; 
+    repeatsPerBlock = p.Results.repeatsPerBlock;
+    contrast = p.Results.contrast;
+    lumSeq = p.Results.lumSeq;
     
     % start the stimulus
     InitScreen(0)
@@ -44,51 +46,22 @@ try
     peripheryDest = CenterRect(peripheryDest, screen.rect-checkersSize/2*[1 1 1 1]);
 
     peripherySource = SetRect(0,0,checkersN, checkersN);
-
-    % change presentationLength into framesN
-    framesN = round(presentationLength*screen.rate/waitframes);
-
     
     % change fixationLength into frames and force it to be an even number.
-    framesPerSaccade = round(fixationLength*screen.rate/waitframes/2)*2;
+    framesPerFixation = round(fixationLength*screen.rate/waitframes/2)*2;
     
-    % make framesN an integer number of framesPerSaccade
-    saccadesN = round(framesN/framesPerSaccade);
-%    framesN = saccadesN*framesPerSaccade;
-
-    % make sure that trialsN is even to get equal number of conditions with
+    % make framesN an integer number of framesPerFixation
+    saccadesN = length(lumSeq);
+    
+    % make sure that blocksN is even to get equal number of conditions with
     % peripheral phase A and B
-    trialsN = 2*ceil(trialsN/2);
+    blocksN = 2*ceil(blocksN/2);
+            
+    % make sure that maximum mean and contrast are whithin monitor range
+    if (max(lumSeq)*(1+3*contrast)>260)
+        error('monitor saturate with current max luminance and contrast')
+    end
     
-    % Define the object order sequence. 
-    S1 = RandStream('mcg16807', 'Seed',seed);
-%    meanSeq = 127 + 127*.1*randn(S1, saccadesN, 1);%randperm(S1, saccadesN);
-    if (isempty(meanSeq))
-        meanSeq = 127 + 127*(rand(S1, saccadesN,1)-.5);
-    else
-        if length(meanSeq)<saccadesN
-            error(['meanSeq needs to have at least ', num2str(saccadesN), ' points']);
-        end
-    end
-    % For each mean luminance, compute the maximum contrast allowed that
-    % will keep luminance in between 0 and 255. I am just solving for:
-    % 1. ? + 3sigma = 255   where sigma = C*?
-    % 2. ? - 3sigma = 0
-    % 
-    % 1. gives C = (255/?-1)/3
-    % 2. gives C = 1/3
-    %
-    % therefore C has to be contained between the minimum of 1/3 and
-    % (255/?-1)/3
-    if (isempty(contrastSeq))
-        maxContrast = min((255./meanSeq - 1)/3, 1/3);
-        contrastSeq = gamrnd(2, maxContrast/10, size(meanSeq));%rand(S1, size(meanSeq)).*maxContrast;%GetPinkNoise(1, framesN, objContrast, screen.gray, 0);
-    else
-        if length(contrastSeq)<saccadesN
-            error(['contrastSeq needs to have at least ', num2str(saccadesN), ' points']);
-        end
-    end
-        
     % Define the PD box
     pd = DefinePD();
     
@@ -100,44 +73,56 @@ try
 
     Screen('TextSize', screen.w, 12);
     
-    label{2} = '';  % init the cell array to prevent worning message
+    label{3} = '';  % init the cell array to prevent worning message
     
-    for trial = 0:trialsN-1
-        label{1} = ['trialN: ',num2str(trial)];
+    % Get a random stream to draw luminances from
+    S1 = RandStream('mcg16807', 'Seed',seed);
+    S1 = {S1, S1};  % one random stream per periMode (obj/saccading)
+    
+    for block = 1:blocksN
+        label{1} = ['blockN: ',num2str(block)];
         for periMode=0:1
             % The following line guarantees that both periMode will have
-            % the same phase2 but different than in the previous trial
+            % the same phase2 but different than in the previous block
             if (periMode==0)
                 phase2 = mod(phase2+1,2);
                 phase1 = 0;
             end
             
-            if (tnfGaussianFlag)
-                % I want all trials with and without periphery to follow
-                % the same center sequence
-                S1.reset
+            RS = S1{periMode+1}; % RS points to one of the two previously 
+                                         % created streams, it is not a
+                                         % third one. Any operation on
+                                         % RS affects the state of
+                                         % the linked S1{periMode} as well
+            if resetBlockSeed
+                RS.reset
             end
             
-            for saccade=1:saccadesN
-                label{2} = ['SaccadeN: ',num2str(saccade)];
-                if (periMode)
-                    % saccading, change peripheral phase
-                    phase1 = mod(phase1+1,2);
+            for repeat = 1:repeatsPerBlock
+                label{2} = ['repeat: ',num2str(repeat)];
+                for saccade=1:saccadesN
+                    if (resetFixationSeed)
+                        RS.reset
+                    end
+                    label{3} = ['SaccadeN: ',num2str(saccade)];
+                    if (periMode)
+                        % saccading, change peripheral phase
+                        phase1 = mod(phase1+1,2);
+                    end
+                    
+                    if (saccade==1)
+                        pdMode=1;
+                    else
+                        pdMode=0;
+                    end
+                    
+                    luminanceSeq = lumSeq(saccade) + lumSeq(saccade)*contrast*randn(RS, 1, framesPerFixation);
+[luminanceSeq(1:3), max(luminanceSeq)]              
+                    showOneSaccade(phase1+phase2, peripheryDest, peripherySource, objRect, luminanceSeq, pdMode, pd, checkerTexture{1}, waitframes, label)
+                    if KbCheck
+                        break
+                    end
                 end
-                
-                if (saccade==1)
-                    pdMode=1;
-                else
-                    pdMode=0;
-                end
-                
-%                [saccade contrastSeq(saccade) meanSeq(saccade)]
-                if (tnfGaussianFlag)
-                    lumSeq = meanSeq(saccade) + meanSeq(saccade)*contrastSeq(saccade)*randn(S1, 1, framesPerSaccade);
-                else
-                    lumSeq = GetPinknoise(framesPerSaccade*saccade+1, framesPerSaccade, contrastSeq(saccade), meanSeq(saccade), 0);
-                end
-                showOneSaccade(phase1+phase2, peripheryDest, peripherySource, objRect, lumSeq, pdMode, pd, checkerTexture{1}, waitframes, label)
                 if KbCheck
                     break
                 end
@@ -151,7 +136,7 @@ try
         end
     end
         
-    seed = S1.State;
+    seed = RS.State;
 %}
     % After drawing, we have to discard the noise checkTexture.
     Screen('Close', checkerTexture{1});
@@ -207,25 +192,24 @@ function p = ParseInput(varargin)
         rate=100;
     end
     
+    L = [22 44 88 176];
+    lumSeq = [L(1) L(2) L(3) L(4) L(1) L(3) L(1) L(4) L(2) L(4) L(4) ...
+        L(3) L(3) L(2) L(2) L(1)];
+    
     % Object related
     p.addParamValue('objSize', 12*PIXELS_PER_100_MICRONS, @(x) x>=0);
-    p.addParamValue('tnfGaussianFlag', 0, @(x) isnumeric(x));   % 0: TNF
-                                                                % 1:
-                                                                % Gaussian
-    p.addParamValue('contrastSeq', [], @(x) isnumeric(x) && size(x,1)<=1);
-    p.addParamValue('meanSeq', [], @(x) isnumeric(x) && size(x,1)<=1);
-    
-    % Background related
     p.addParamValue('seed', 1, @(x) isnumeric(x) );
-    p.addParamValue('backContrast', 1, @(x)x>=0 && x<=1);
+    p.addParamValue('contrast', 0, @(x) x>=0 && x<=1);
+    p.addParamValue('lumSeq', lumSeq, @(x) isnumeric(x) && size(x,1)<=1);
+    p.addParamValue('blocksN', 2);
+    p.addParamValue('repeatsPerBlock', 25, @(x) x>=0);
+    % Background related
     p.addParamValue('fixationLength', 1, @(x) x>=0);
-    p.addParamValue('backTexture', [], @(x) iscell(x));
-    p.addParamValue('peripheryStep', 1, @(x) x>=0 && x<=PIXELS_PER_100_MICRONS);
-
+    p.addParamValue('resetFixationSeed', 0, @(x) x==0 || x==1);
+    p.addParamValue('resetBlockSeed', 0, @(x) x==0 || x==1);
+    
     % General
     p.addParamValue('stimSize', screenY, @(x)x>0);
-    p.addParamValue('presentationLength', 100, @(x)x>0);
-    p.addParamValue('trialsN', 50);
     p.addParamValue('checkersSize', PIXELS_PER_100_MICRONS/2, @(x)x>0);
     p.addParamValue('waitframes', round(rate/30), @(x)isnumeric(x));         
 
