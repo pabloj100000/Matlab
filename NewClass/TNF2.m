@@ -1,4 +1,4 @@
-function [seed] = TNF2(varargin)
+function [seed] = TNF2(contrastSeq, lumSeq, varargin)
 % Simulate small objects and saccades.
 % Screen is divided in two, center and periphery.
 % Center follows a gaussian sequence and at times given by 'backReverseFreq'
@@ -24,8 +24,6 @@ try
     fixationLength = p.Results.fixationLength;
     blocksN = p.Results.blocksN; 
     repeatsPerBlock = p.Results.repeatsPerBlock;
-    contrast = p.Results.contrast;
-    lumSeq = p.Results.lumSeq;
     
     % start the stimulus
     InitScreen(0)
@@ -58,7 +56,7 @@ try
     blocksN = 2*ceil(blocksN/2);
             
     % make sure that maximum mean and contrast are whithin monitor range
-    if (max(lumSeq)*(1+3*contrast)>260)
+    if (max(lumSeq)*(1+3*max(contrastSeq))>260)
         error('monitor saturate with current max luminance and contrast')
     end
     
@@ -69,8 +67,8 @@ try
     Screen('FillRect', screen.w, screen.gray);
 
     phase1 = 0;        % used to produce saccades
-    phase2 = 0;        % used to have consecutive repeats of the same stim with different peripheral phases
-
+    phase2 = 0;        % used to change peripheral phase in between blocks
+    
     Screen('TextSize', screen.w, 12);
     
     label{3} = '';  % init the cell array to prevent worning message
@@ -80,7 +78,7 @@ try
     S1 = {S1, S1};  % one random stream per periMode (obj/saccading)
     
     for block = 1:blocksN
-        label{1} = ['blockN: ',num2str(block)];
+        label{1} = ['blockN: ',num2str(block), '/', num2str(blocksN)];
         for periMode=0:1
             % The following line guarantees that both periMode will have
             % the same phase2 but different than in the previous block
@@ -99,12 +97,15 @@ try
             end
             
             for repeat = 1:repeatsPerBlock
-                label{2} = ['repeat: ',num2str(repeat)];
+                label{2} = ['repeat: ',num2str(repeat), '/', num2str(repeatsPerBlock)];
                 for saccade=1:saccadesN
                     if (resetFixationSeed)
                         RS.reset
                     end
-                    label{3} = ['SaccadeN: ',num2str(saccade)];
+                    label{3} = ['SaccadeN: ',num2str(saccade), '/', num2str(saccadesN)];
+                    label{4} = ['mean: ', num2str(lumSeq(saccade))];
+                    label{5} = ['contrast: ', num2str(contrastSeq(saccade))];
+
                     if (periMode)
                         % saccading, change peripheral phase
                         phase1 = mod(phase1+1,2);
@@ -116,8 +117,10 @@ try
                         pdMode=0;
                     end
                     
-                    luminanceSeq = lumSeq(saccade) + lumSeq(saccade)*contrast*randn(RS, 1, framesPerFixation);
-[luminanceSeq(1:3), max(luminanceSeq)]              
+                    lum = lumSeq(saccade);
+                    cont = contrastSeq(saccade);
+                    
+                    luminanceSeq = lum + lum*cont*randn(RS, 1, framesPerFixation);
                     showOneSaccade(phase1+phase2, peripheryDest, peripherySource, objRect, luminanceSeq, pdMode, pd, checkerTexture{1}, waitframes, label)
                     if KbCheck
                         break
@@ -192,15 +195,10 @@ function p = ParseInput(varargin)
         rate=100;
     end
     
-    L = [22 44 88 176];
-    lumSeq = [L(1) L(2) L(3) L(4) L(1) L(3) L(1) L(4) L(2) L(4) L(4) ...
-        L(3) L(3) L(2) L(2) L(1)];
     
     % Object related
     p.addParamValue('objSize', 12*PIXELS_PER_100_MICRONS, @(x) x>=0);
     p.addParamValue('seed', 1, @(x) isnumeric(x) );
-    p.addParamValue('contrast', 0, @(x) x>=0 && x<=1);
-    p.addParamValue('lumSeq', lumSeq, @(x) isnumeric(x) && size(x,1)<=1);
     p.addParamValue('blocksN', 2);
     p.addParamValue('repeatsPerBlock', 25, @(x) x>=0);
     % Background related

@@ -7,7 +7,9 @@ try
     RF('movieDurationSecs', 1000)
     pause(.2)
 
-    TNF2('meanSeq', GetLumSeq(), 'contrastSeq', zeros(1, 16*100), 'tnfGaussianFlag', 1);
+    TNF2Wrapper('
+    
+    StableObject2('barsWidth', PIXELS_PER_100_MICRONS*.5)
     pause(.2)
     
     TNF_Gaussian([-1;-1], 1200,0, 'presentationLength', 100, 'config',5, 'trialsN',2)
