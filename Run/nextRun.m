@@ -4,16 +4,15 @@ try
     Add2StimLogList();
     Wait2Start()
 
-    RF('movieDurationSecs', 1000)
+    ShowGaussianNatScene(.1, 2, './cd01A')
     pause(.2)
 
-    TNF2Wrapper('
-    
-    StableObject2('barsWidth', PIXELS_PER_100_MICRONS*.5)
+    ShowGaussianNatScene(.1, 2, './cd02A')
     pause(.2)
-    
-    TNF_Gaussian([-1;-1], 1200,0, 'presentationLength', 100, 'config',5, 'trialsN',2)
+
+    ShowGaussianNatScene(.1, 2, './cd13A')
     pause(.2)
+
 
     FinishExperiment();
     
