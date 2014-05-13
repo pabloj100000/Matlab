@@ -1,5 +1,5 @@
 function ShowCorrelatedGaussianCheckers(checkers, framesN, means, changes, ...
-    contrast)
+    contrast, seed)
 % show many gaussian checkers at once.
 % The luminance value in checker 'i' is:
 %   means(i) + rand(contrast)*changes(i, j)
@@ -12,14 +12,13 @@ function ShowCorrelatedGaussianCheckers(checkers, framesN, means, changes, ...
 % 
 % dimension the gradients along 
 global screen
-waitframes = round(.03*screen.rate);
 
 try
     % start the stimulus
     InitScreen(0)
     Add2StimLogList();
         
-    RS = RandStream('mcg16807', 'Seed', 1);
+    RS = RandStream('mcg16807', 'Seed', seed);
     
     % Define the PD box
     pd = DefinePD();
@@ -54,13 +53,15 @@ try
         Screen('FillOval', screen.w, pdColor, pd);
   %}      
         % Flip 'waitframes' monitor refresh intervals after last redraw.
-        screen.vbl = Screen('Flip', screen.w, screen.vbl + (waitframes - 0.5) * screen.ifi);
+        screen.vbl = Screen('Flip', screen.w, screen.vbl + (screen.waitframes - 0.5) * screen.ifi);
 
         if KbCheck
             break
         end
     end
         
+    seed = RS.State;
+    
     FinishExperiment();
         
 catch exception

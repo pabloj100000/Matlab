@@ -4,15 +4,24 @@ try
     Add2StimLogList();
     Wait2Start()
 
-    ShowGaussianNatScene(.1, 2, './cd01A')
-    pause(.2)
-
-    ShowGaussianNatScene(.1, 2, './cd02A')
-    pause(.2)
-
-    ShowGaussianNatScene(.1, 2, './cd13A')
-    pause(.2)
-
+    contrast = .1;
+    path = '';
+    presentationLength = 10;
+    cellSize = round(PIXELS_PER_100_MICRONS/3);
+    seed = 1;
+    
+    for i=1:2
+        ShowGaussianNatScene(contrast, 2, path, presentationLength, cellSize, seed);
+        pause(.2)
+        
+        ShowGaussianNatScene(contrast, 3, path, presentationLength, cellSize, seed);
+        pause(.2)
+        
+        ShowGaussianNatScene(contrast, 4, path, presentationLength, cellSize, seed);
+        pause(.2)
+    end
+    
+    LuminanceChange
 
     FinishExperiment();
     
@@ -26,13 +35,4 @@ end %try..catch..
 end
 
 
-function lumSeq = GetLumSeq()
-    repeats = 100;
-    L = [32 64 128 256]-1;
-    
-    lumSeq = ones(1, repeats*length(L)^2);
-    for i=1:repeats
-        lumSeq((i-1)*length(L)^2+1:i*length(L)^2) = [L(1) L(2) L(3) L(4) L(1) L(3) L(1) L(4) L(2) L(4) L(4) L(3) L(3) L(2) L(2) L(1)];
-    end
-end
 

@@ -1,10 +1,13 @@
-function ShowGaussianNatScene(contrast, imNumber, impath)
+function seed = ShowGaussianNatScene(contrast, imNumber, impath, presentationLength, ...
+    cellSize, seed)
 global screen 
 try
+    cellSize
+    
     InitScreen(0)
     Add2StimLogList();
     
-    if (length(impath)==0)
+    if (isempty(impath))
         impath = '/Users/jadz/Documents/Notebook/Matlab/Natural Images DB/RawData/cd01A';
     end
     imList = dir([impath,'/*LUM.mat']);
@@ -12,10 +15,8 @@ try
     w_im = struct.LUM_Image;
     w_im = w_im*2^8/max(w_im(:));
 %    w_im = imread('peppers.png');
-    presentationLength = 1600;
-    cellSize = 11;
     
-    [cellMeans, changeUp, changeLeft]=GaussianNatScene2(w_im, cellSize, 1);
+    [cellMeans, changeUp, changeLeft]=GaussianNatScene2(w_im, cellSize, cellSize);
 
     % Generate checkers, output has to be of size (4,checkersN)
     ch_vert = size(cellMeans,1);
@@ -31,8 +32,10 @@ try
     changeLeftB = reshape(changeLeft', 1, size(changeLeft,1)*size(changeLeft,2));
     changes = [changeUpB; changeLeftB];
     
+    framesN = presentationLength*screen.rate/screen.waitframes;
+    
 %    seeds = zeros(1, size(ch,2));
-    ShowCorrelatedGaussianCheckers(ch, presentationLength, cellMeansB, changes, contrast);
+    ShowCorrelatedGaussianCheckers(ch, framesN, cellMeansB, changes, contrast, seed);
     FinishExperiment();
 
 catch exception
