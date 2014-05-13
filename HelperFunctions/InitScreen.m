@@ -31,6 +31,7 @@ function InitScreen(debugging, varargin)
         Screen('Preference', 'SkipSyncTests',1);
     end
 
+    
     % Get the list of screens and choose the one with the highest screen number.
     screenNumber=max(Screen('Screens'));
 
@@ -73,6 +74,8 @@ function InitScreen(debugging, varargin)
         screen.ifi=.01;
     end
     
+    screen.waitframes = round(.03*screen.rate);
+
     if mod(screen.rate,2)
         answer = questdlg(['Screen Rate is a non (', num2str(screen.rate), ...
             'Hz). Do you want to continue or abort?'], 'Frame Rate', 'Abort', 'Continue', 'Abort');
@@ -81,7 +84,8 @@ function InitScreen(debugging, varargin)
         end
     end
 
-    [scree.width scree.height] = Screen('WindowSize', max(Screen('Screens')));
+    [screen.size(1) screen.size(2)] = Screen('WindowSize', max(Screen('Screens')));
+    
     screen.vbl = 0;
 end
 
