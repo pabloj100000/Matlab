@@ -19,10 +19,7 @@ try
     InitScreen(0)
     Add2StimLogList();
         
-    % Define the object order sequence. 
     RS = RandStream('mcg16807', 'Seed', 1);
-    layerRS = RandStream('mcg16807', 'Seed', 1);
-    layersN = size(changes,1);
     
     % Define the PD box
     pd = DefinePD();
@@ -40,7 +37,9 @@ try
         colors = uint8(colors)
         %}
         % colors has to be of size = (3,n) or (4,n)
-        colors = ones(3,1)*(rand(RS)*means.*changes(randi(layerRS, layersN),:)*contrast + means);
+        colors = ones(3,1)*(randn(RS)*means.*changes(1,:)*contrast + ...
+            randn(RS)*means.*changes(2,:)*contrast + means);
+        
         %.*means.*stds+means)
         Screen('FillRect', screen.w, colors, checkers)
 

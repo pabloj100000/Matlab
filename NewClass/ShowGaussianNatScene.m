@@ -3,8 +3,10 @@ global screen
 try
     InitScreen(0)
     Add2StimLogList();
-
-%    impath = '/Users/jadz/Documents/Notebook/Matlab/Natural Images DB/RawData/cd01A';
+    
+    if (length(impath)==0)
+        impath = '/Users/jadz/Documents/Notebook/Matlab/Natural Images DB/RawData/cd01A';
+    end
     imList = dir([impath,'/*LUM.mat']);
     struct = load([impath, '/',imList(imNumber).name]);
     w_im = struct.LUM_Image;
