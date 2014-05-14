@@ -32,7 +32,8 @@ try
     changeLeftB = reshape(changeLeft', 1, size(changeLeft,1)*size(changeLeft,2));
     changes = [changeUpB; changeLeftB];
     
-    framesN = presentationLength*screen.rate/screen.waitframes;
+    framesPerSec = round(screen.rate/screen.waitframes);
+    framesN = presentationLength*framesPerSec
     
 %    seeds = zeros(1, size(ch,2));
     ShowCorrelatedGaussianCheckers(ch, framesN, cellMeansB, changes, contrast, seed);

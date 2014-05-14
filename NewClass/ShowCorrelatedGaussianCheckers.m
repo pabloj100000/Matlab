@@ -36,15 +36,15 @@ try
         colors = uint8(colors)
         %}
         % colors has to be of size = (3,n) or (4,n)
-        colors = ones(3,1)*(randn(RS)*means.*changes(1,:)*contrast + ...
-            randn(RS)*means.*changes(2,:)*contrast + means);
+        colors = uint8(ones(3,1)*(randn(RS)*means.*changes(1,:)*contrast + ...
+            randn(RS)*means.*changes(2,:)*contrast + means));
         
         %.*means.*stds+means)
         Screen('FillRect', screen.w, colors, checkers)
 
         %        Screen('FillOval', screen.w, pdColor, pd);
-%{        
-        if (mod(frame, screen.rate/waitframes)==1)
+% {        
+        if (mod(frame, round(screen.rate/screen.waitframes))==1)
             pdColor = 255;
         else
             pdColor = colors(1,1)/2;
