@@ -1,5 +1,5 @@
 function [cellsMean, changeUp, changeLeft] = ...
-    GaussianNatScene2(originalImage, cellSize, movementSize)
+    GaussianizeImage(originalImage, cellSize, movementSize)
 % From a given image (may be a natural scene), return 3 different images.
 %   cellsMean, the mean seen by a cell of size 'cellSize' 
 %              under the original image.
