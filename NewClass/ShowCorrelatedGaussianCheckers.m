@@ -5,12 +5,16 @@ function seed = ShowCorrelatedGaussianCheckers(checkers, framesN, means, changes
 %   means(i) + rand(contrast)*changes(i, j)
 % 
 % changes is an array that has gradients, how much the image will change
-% upon moving in a given direction. Potentially, changes can be a 2D array
-% if we pass for examples changes when moving the image up, donw, left, 
-% right, right and up, etc... we can also have movements of different
-% sizes.
-% 
-% dimension the gradients along 
+% upon moving in a given direction. Changes will be a 2D array
+% (moving the image up-donw, left-right)
+%
+% checkers: 4 x checkersN
+% framesN:  
+% means: 1D checkersN
+% changes: 2D 2 x checkersN (changes(1,:) has the gradients in either
+% vertical or horizontal and changes(2,:) has the gradients along the other
+% direction
+
 global screen
 
 try
@@ -18,6 +22,13 @@ try
     InitScreen(0)
     Add2StimLogList();
         
+    % if changes is 3D, change it to 2D 
+    if (length(size(changes))==3)
+        if size(changes,1)~=1
+            error('ShowCorrelatedGaussianCheckers wants to change an array from 3D to 2D but 1st dimension should be of length 1 and it is not');
+        end
+        changes = reshape(changes, 2, length(changes));
+    end
     RS = RandStream('mcg16807', 'Seed', seed);
     
     % Define the PD box

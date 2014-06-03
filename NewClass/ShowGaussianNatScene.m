@@ -10,78 +10,26 @@ try
     InitScreen(0)
     Add2StimLogList();
 
-    % Load image from DB
-    if (isempty(impath))
-        impath = '/Users/jadz/Documents/Notebook/Matlab/Natural Images DB/RawData/cd01A';
-    end
-    imList = dir([impath,'/*LUM.mat']);
-    struct = load([impath, '/',imList(imNumber).name]);
-    w_im = struct.LUM_Image;
-    w_im = w_im*2^8/max(w_im(:));
-
     % Gaussianize the image
-    [cellMeans, varianceUp, varianceLeft]=GaussianizeImage(w_im, cellSize, 1);
+    [cellsMean, variances, checkers] = ...
+        GaussianizeImageSet(impath, imNumber, cellSize, 1, contrast);
 
-    % Generate checkers, output has to be of size (4,checkersN)
-    ch_vert = size(cellMeans,1);
-    ch_hori = size(cellMeans,2);
-    %ch_offset = screen.center - size(cellMeans)*cellSize/2;
-    ch_offset = [0 0];
-    ch = tileCheckers(ch_hori, ch_vert, cellSize, cellSize, ch_offset(1),...
-        ch_offset(2), cellSize, cellSize);
-    %{
-        %%%%%%%%%% This is used to turn on/off parts of the code and
-        explain stimulus generation %%%%%%%%%%%
-    example =0;
-    switch example
-        case 0
-            % just the mean
-            varianceUp = varianceUp*0;
-            varianceLeft = varianceLeft*0;
-        case 1
-            % only Up change, around gray mean
-            cellMeans = ones(size(cellMeans))*127;
-            varianceLeft = varianceLeft*0;
-        case 2
-            % only Left change, around gray mean
-            cellMeans = ones(size(cellMeans))*127;
-            varianceUp = varianceUp*0;
-        case 3
-            % Only some checkers, correct mean, zero contrast
-            varianceUp = varianceUp*0;
-            varianceLeft = varianceLeft.*0;
-            filter = zeros(size(varianceLeft));
-            filter(1:25:size(cellMeans,1), 1:25:size(cellMeans,2))=1;
-            cellMeans = cellMeans.*filter;
-        case 4
-            % Only some checkers, correct mean, correct contrast
-            varianceUp = varianceUp*0;
-            filter = zeros(size(varianceLeft));
-            filter(1:25:size(cellMeans,1), 1:25:size(cellMeans,2))=1;
-            cellMeans = 0 + filter*127;
-            varianceLeft = varianceLeft.*filter;
-    end
-        %}
-
-    % convert cellMeans, varianceUp, varianceLeft to 1D
-    cellMeans1D = reshape(cellMeans', 1, size(cellMeans,1)*size(cellMeans,2));
-    varianceUp1D = reshape(varianceUp', 1, size(varianceUp,1)*size(varianceUp,2));
-    varianceLeft1D = reshape(varianceLeft', 1, size(varianceLeft,1)*size(varianceLeft,2));
-
+    variances = reshape(variances, size(variances,2), size(variances,3));
+    
     % this might be useful. Allows to scramble different statistics of the
     % checkers. Pass scramble = 0 to do nothing
-    [cellMeans1D, varianceUp1D, varianceLeft1D] = ...
-        ScrambleImages(cellMeans1D, varianceUp1D, varianceLeft1D, scramble);
-    
-    % Normalize both means and variances
-    variances = normalizeVariance(varianceUp1D, varianceLeft1D);
-    cellMeans1D = normalizeMeans(cellMeans1D, variances, contrast);
-    
+    if scramble
+        [cellsMean, variances] = ...
+            ScrambleImages(cellsMean, varianceUp, varianceLeft, scramble);
+    end
+        
     framesPerSec = round(screen.rate/screen.waitframes);
     framesN = presentationLength*framesPerSec;
     
 %    seeds = zeros(1, size(ch,2));
-    ShowCorrelatedGaussianCheckers(ch, framesN, cellMeans1D, variances, contrast, seed);
+
+    seed = ShowCorrelatedGaussianCheckers(checkers, framesN, cellsMean, ...
+        variances, contrast, seed);
     FinishExperiment();
 
 catch exception
@@ -133,30 +81,4 @@ function [scrambledMean, scrambledVarianceUp, scrambledVarianceLeft] = ...
     end
 end
 
-function [variances] = normalizeVariance(varianceUp1D, varianceLeft1D)
-% Each checker follows a gaussian distribution with mean given by
-% scrambleMean (?) and variance given by:
-% ?^2*(varianceLeft + varianceUp)*contrast^2
-% such that
-% Contrast = sigma/? = sqrt(varianceLeft + varianceUp)*contrast
-% I want to normalize those variances such that the total contrast
-% is always between 0 and contrast, therefore I am normalizing
-% variance to be between 0 and 1.
-maxVar = max(abs(varianceLeft1D)+abs(varianceUp1D));
-variances = [varianceUp1D; varianceLeft1D]/maxVar;
 
-end
-
-function cellMeans1D = normalizeMeans(cellMeans1D, variances, contrast)
-% normalize meas such that mean +3*mean*SD*contrast < 255 for every checker
-% or mean*(1+3*SD*contrast)<255
-% or mean < 255/(1+3*SD*contrast)
-oldMax = max(cellMeans1D);
-while max(cellMeans1D .*  (1+3*sqrt(sum(variances))*contrast))>255;
-    % reduce maximum mean
-    cellMeans1D = cellMeans1D * .95;
-end
-
-newMax = max(cellMeans1D);
-[oldMax newMax]
-end

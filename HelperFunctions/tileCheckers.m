@@ -2,6 +2,7 @@ function checkers = tileCheckers(checkersNinX, checkersNinY, sizeX, sizeY,...
     xLeftMargin, yTopMargin, distanceX, distanceY)
 % Generate a 2D array with checkers (something that could be used with for
 % example FillRect, having N checkers). 
+Add2StimLogList();
 
 % For example, you might want to run something like
 checkersN = checkersNinX*checkersNinY;
