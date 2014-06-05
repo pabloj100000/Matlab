@@ -1,12 +1,17 @@
-function [cellsMean, variances, checkers] = ...
-    GaussianizeImage(originalImage, cellSize, movementSize, contrast)
-% From a given image (may be a natural scene), return 3 different 1D arrays
-% which along with checkers can generate these images:
-%   cellsMean, the mean seen by a cell of size 'cellSize' 
-%              under the original image.
-%   varianceUp,  the LP a cell will see by a moving the image up by
-%              movementSize
-%   varianceLeft, idem varianceUp but to the left
+function [cellsMean, gradients, checkers] = ...
+    GaussianizeImage(originalImage, cellSize, movementSize, contrast,...
+    outputSize)
+% From a given image (may be a natural scene), returns 3 arrays which can 
+% simulate something similar to the scene undergoing FEM but where each
+% pixel is actually gaussian.
+%   checkers:   2D array wtih 4 x checkersN elements. It is in the format
+%               required by Screen('FillRects')
+%               Each checker represents a cell of diameter 'cellSize' and 
+%               they tile the screen.
+%   cellsMean,  the mean seen by a cell of size 'cellSize' 
+%               under the original image.
+%   gradients,  the LP a cell will see by a moving the image up by
+%               movementSize
 %   
 % It also returns 'checkers', a 4 x checkerN array (the format that Screen
 % 'FillRect' expects.
@@ -15,13 +20,16 @@ function [cellsMean, variances, checkers] = ...
 %   Screen('FillRect', screen.w, ones(3, 1)*cellsMean, checkers)
 %
 % will display the image with the means.
+global screen
 
 debugFlag=0;
 Add2StimLogList();
 
 % convolve w_im with a square of size 'cellSize'
 h = fspecial('average', cellSize);
-filteredImage = uint8(imfilter(originalImage, h));
+smallImage = originalImage(1:outputSize, 1:outputSize);
+%smallImage = originalImage(1:cellSize*outputSize, 1:cellSize*outputSize);
+filteredImage = uint8(imfilter(smallImage, h));
 
 cellsMean = mean(filteredImage, 3);
 
@@ -33,15 +41,15 @@ cellsMean = mean(filteredImage, 3);
 % mean and sd of each cell
 
 % subtract from filteredImage a shifted version
-varianceLeft = cellsMean(:, 1+movementSize:end) -...
+gradientLeft = cellsMean(:, 1+movementSize:end) -...
     cellsMean(:, 1:end-movementSize);
 
-varianceUp = cellsMean(1+movementSize:end, :) -...
+gradientUp = cellsMean(1+movementSize:end, :) -...
     cellsMean(1:end-movementSize, :);
 
-% now limit all images cellsMean, varianceUp, changeDown to be the same
+% now limit all images cellsMean, gradientUp, changeDown to be the same
 % size
-sizes = [size(cellsMean); size(varianceUp); size(varianceLeft)];
+sizes = [size(cellsMean); size(gradientUp); size(gradientLeft)];
 finalSize = min(sizes);
 
 % Downsample the image to be only a given number of cells in x, y
@@ -51,30 +59,30 @@ centersY = 1:cellSize:finalSize(2);
 
 
 cellsMean = cellsMean(centersX, centersY);
-varianceUp = varianceUp(centersX, centersY);
-varianceLeft = varianceLeft(centersX, centersY);
+gradientUp = gradientUp(centersX, centersY);
+gradientLeft = gradientLeft(centersX, centersY);
 
-% output arrays are 1D for the mean and variances and checkers is 4 x
+% output arrays are 1D for the mean and gradients and checkers is 4 x
 % checkersN, this is the format that Screen('FillRect') expects.
 
 % Generate checkers, output has to be of size (4,checkersN)
 ch_vert = size(cellsMean,1);
 ch_hori = size(cellsMean,2);
 %ch_offset = screen.center - size(cellMeans)*cellSize/2;
-ch_offset = [0 0];
+ch_offset = screen.center - [1 1]*outputSize/2;
 checkers = tileCheckers(ch_hori, ch_vert, cellSize, cellSize, ch_offset(1),...
     ch_offset(2), cellSize, cellSize);
 
-% convert cellMeans, varianceUp, varianceLeft to 1D
+% convert cellMeans, gradientUp, gradientLeft to 1D
 cellsMean = reshape(cellsMean', 1, size(cellsMean,1)*size(cellsMean,2));
-varianceUp = reshape(varianceUp', 1, size(varianceUp,1)*size(varianceUp,2));
-varianceLeft = reshape(varianceLeft', 1, size(varianceLeft,1)*size(varianceLeft,2));
+gradientUp = reshape(gradientUp', 1, size(gradientUp,1)*size(gradientUp,2));
+gradientLeft = reshape(gradientLeft', 1, size(gradientLeft,1)*size(gradientLeft,2));
 
-% Normalize variances such that max variance is 1 after combining Up and
+% Normalize gradients such that max gradient is 1 after combining Up and
 % Left
-variances = normalizeVariance(varianceUp, varianceLeft);
+gradients = normalizeGradient(gradientUp, gradientLeft);
 % Normalize means such that luminance are constrained to 0 and 255
-cellsMean = normalizeMeans(cellsMean, variances, contrast);
+cellsMean = normalizeMeans(cellsMean, gradients, contrast);
 
 
 if debugFlag
@@ -86,26 +94,26 @@ end
 end
 
 
-function [variances] = normalizeVariance(varianceUp1D, varianceLeft1D)
+function [gradients] = normalizeGradient(gradientUp1D, gradientLeft1D)
 % Each checker follows a gaussian distribution with mean given by
-% scrambleMean (?) and variance given by:
-% ?^2*(varianceLeft + varianceUp)*contrast^2
+% scrambleMean (?) and gradient given by:
+% ?^2*(gradientLeft + gradientUp)*contrast^2
 % such that
-% Contrast = sigma/? = sqrt(varianceLeft + varianceUp)*contrast
-% I want to normalize those variances such that the total contrast
+% Contrast = sigma/? = sqrt(gradientLeft + gradientUp)*contrast
+% I want to normalize those gradients such that the total contrast
 % is always between 0 and contrast, therefore I am normalizing
-% variance to be between 0 and 1.
-maxVar = max(abs(varianceLeft1D)+abs(varianceUp1D));
-variances = [varianceUp1D; varianceLeft1D]/maxVar;
+% gradient to be between 0 and 1.
+maxVar = max(abs(gradientLeft1D)+abs(gradientUp1D));
+gradients = [gradientUp1D; gradientLeft1D]/maxVar;
 
 end
 
-function cellMeans1D = normalizeMeans(cellMeans1D, variances, contrast)
+function cellMeans1D = normalizeMeans(cellMeans1D, gradients, contrast)
 % normalize meas such that mean +3*mean*SD*contrast < 255 for every checker
 % or mean*(1+3*SD*contrast)<255
 % or mean < 255/(1+3*SD*contrast)
 oldMax = max(cellMeans1D);
-while max(cellMeans1D .*  (1+3*sqrt(sum(variances))*contrast))>255;
+while max(cellMeans1D .*  (1+3*sqrt(sum(gradients))*contrast))>255;
     % reduce maximum mean
     cellMeans1D = cellMeans1D * .95;
 end

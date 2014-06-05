@@ -1,4 +1,4 @@
-function ShowGaussianNatSceneWrapper()
+function ShowGaussianNatSceneWrapper(presentationLength, resetSeed, ctrlFlag)
 global screen
 try
     Add2StimLogList();
@@ -12,47 +12,45 @@ try
     nextSeed = 1;
     imIndex = 2:11;
     trialsN = 10;
-    PresentationLength1 = 10;    % each trial of the same image has a different seed
-    PresentationLength2 = 1;    % each trial of the same image has the same seed
     path = '';
+    outputSize = min(screen.size);
+    
+    if ctrlFlag
+        imIndex = 1;
+    end
     
     % do all computation upfront to prevent dropping frames in between images.
     [allMeans, allVariances, checkers] = ...
-        GaussianizeImageSet(path, imIndex, cellSize, 1, contrast);
+        GaussianizeImageSet(path, imIndex, cellSize, 1, contrast, outputSize);
+
+    if ctrlFlag
+        allMeans = ones(size(allMeans))*127;
+        allVariances = ones(size(allVariances))*1;
+        contrast=.1;
+    end
+    
+    seed = nextSeed;
+    
     for trial=1:trialsN
         % show each image for a rather long time, useful for computing
         % models early/late and comparing them
         for i=1:length(imIndex)
-            presentationLength = PresentationLength1;
             framesPerSec = round(screen.rate/screen.waitframes);
             framesN = presentationLength*framesPerSec;
 
-            if i==1
+            if i==1 && ~resetSeed
+                % if resetSeed, we are never executing this line and every
+                % time will be using the same seed
                 seed = nextSeed;
-                nextSeed = ShowCorrelatedGaussianCheckers(checkers, framesN,...
-                    allMeans(i,:), allVariances(i,:,:), contrast, seed);
-            else
-                ShowCorrelatedGaussianCheckers(checkers, framesN,...
-                    allMeans(i,:), allVariances(i,:,:), contrast, seed);
             end
-            
-            if (KbCheck)
-                break
-            end
-        end
-        
-        % useful for analyzing saccades
-        for i=1:length(imIndex)
-            presentationLength = PresentationLength2;
-            framesN = presentationLength*framesPerSec;
-
-            seed = 1;
-            ShowCorrelatedGaussianCheckers(checkers, framesN,...
+            nextSeed = ShowCorrelatedGaussianCheckers(checkers, framesN,...
                 allMeans(i,:), allVariances(i,:,:), contrast, seed);
+
             if (KbCheck)
                 break
             end
         end
+
         if (KbCheck)
             break
         end

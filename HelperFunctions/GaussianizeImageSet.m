@@ -1,5 +1,6 @@
 function [allMeans, allVariances, checkers] = ...
-    GaussianizeImageSet(s_path, imIndex, cellSize, movementSize, contrast)
+    GaussianizeImageSet(s_path, imIndex, cellSize, movementSize, contrast, ...
+    outputSize)
     % for each image that matches s_path and imIndex as in 
     % load([s_path, '/',imList(imIndex(i)).name]);
     %
@@ -25,7 +26,7 @@ function [allMeans, allVariances, checkers] = ...
 
         % gaussianize the image
         [cellsMean, variances, checkers] = ...
-            GaussianizeImage(w_im, cellSize, movementSize, contrast);
+            GaussianizeImage(w_im, cellSize, movementSize, contrast, outputSize);
         
         if i==1
             allMeans = ones(imagesN, length(cellsMean));
