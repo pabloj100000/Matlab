@@ -1,5 +1,5 @@
-function seed = ShowCorrelatedGaussianCheckers(checkers, framesN, means, changes, ...
-    contrast, seed)
+function seed = ShowCorrelatedGaussianCheckers(framesN, cellSize, means, gradientUp, ...
+    gradientLeft, contrast, seed)
 % show many gaussian checkers at once.
 % The luminance value in checker 'i' is:
 %   means(i) + rand(contrast)*changes(i, j)
@@ -21,15 +21,17 @@ try
     % start the stimulus
     InitScreen(0)
     Add2StimLogList();
-        
+
+    % mean, gradientUp and gradientLeft are 3D, change them to be 2D
     % if changes is 3D, change it to 2D 
-    if (length(size(changes))==3)
-        if size(changes,1)~=1
-            error('ShowCorrelatedGaussianCheckers wants to change an array from 3D to 2D but 1st dimension should be of length 1 and it is not');
-        end
-        changes = reshape(changes, 2, length(changes));
-    end
+    means = reshape(means, size(means,2), size(means,3));
+    gradientUp = reshape(gradientUp, size(gradientUp,2), size(gradientUp,3));
+    gradientLeft = reshape(gradientLeft, size(gradientLeft,2), size(gradientLeft,3));
+    
     RS = RandStream('mcg16807', 'Seed', seed);
+    
+    destRect = SetRect(0, 0, size(means,1), size(means,2))*cellSize;
+    destRect = CenterRect(destRect, screen.rect);
     
     % Define the PD box
     pd = DefinePD();
@@ -47,14 +49,12 @@ try
         colors = uint8(colors)
         %}
         % colors has to be of size = (3,n) or (4,n)
-        colors = uint8(ones(3,1)*(randn(RS)*means.*changes(1,:)*contrast + ...
-            randn(RS)*means.*changes(2,:)*contrast + means));
+        colors = uint8((randn(RS)*means.*gradientUp*contrast + ...
+            randn(RS)*means.*gradientLeft*contrast + means));
         
-        %.*means.*stds+means)
-        Screen('FillRect', screen.w, colors, checkers)
-
-        %        Screen('FillOval', screen.w, pdColor, pd);
-% {        
+        texture = Screen('MakeTexture', screen.w, colors);
+        Screen('DrawTexture', screen.w, texture, [],destRect,[], 0);
+        
         if (mod(frame, round(screen.rate/screen.waitframes))==1)
             pdColor = 255;
         else
@@ -62,9 +62,12 @@ try
         end
         
         Screen('FillOval', screen.w, pdColor, pd);
-  %}      
+
         % Flip 'waitframes' monitor refresh intervals after last redraw.
         screen.vbl = Screen('Flip', screen.w, screen.vbl + (screen.waitframes - 0.5) * screen.ifi);
+
+        % We have to discard the noise checkTexture.
+        Screen('Close', texture);
 
         if KbCheck
             break

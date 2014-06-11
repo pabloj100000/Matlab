@@ -1,4 +1,4 @@
-function [allMeans, allVariances, checkers] = ...
+function [allMeans, allGradientUp, allGradientLeft] = ...
     GaussianizeImageSet(s_path, imIndex, cellSize, movementSize, contrast, ...
     outputSize)
     % for each image that matches s_path and imIndex as in 
@@ -25,15 +25,19 @@ function [allMeans, allVariances, checkers] = ...
         w_im = w_im*2^8/max(w_im(:));
 
         % gaussianize the image
-        [cellsMean, variances, checkers] = ...
+        [cellsMean, gradientUp, gradientLeft] = ...
             GaussianizeImage(w_im, cellSize, movementSize, contrast, outputSize);
         
+        % Get all the gaussianized images onto one big array that has
+        % images on the 1st axis
         if i==1
-            allMeans = ones(imagesN, length(cellsMean));
-            allVariances = ones(imagesN, size(variances,1), size(variances,2));
+            allMeans = ones([imagesN size(cellsMean)]);
+            allGradientUp = ones([imagesN size(gradientUp)]);
+            allGradientLeft = ones([imagesN size(gradientLeft)]);
         end
         
-        allMeans(i, :) = cellsMean;
-        allVariances(i, :, :) = variances(:, :);
+        allMeans(i, :, :) = cellsMean;
+        allGradientUp(i, :, :) = gradientUp(:, :);
+        allGradientLeft(i, :, :) = gradientLeft(:, :);
     end
     
