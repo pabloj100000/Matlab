@@ -4,25 +4,13 @@ try
     Add2StimLogList();
     Wait2Start()
 
-    contrast = .1;
-    path = '';
-    presentationLength = 10;
-    cellSize = round(PIXELS_PER_100_MICRONS/3);
-    seed = 1;
+    path='/Users/baccuslab/Desktop/stimuli/Pablo/Natural Images DB/cd01A';
+    ShowGaussianNatSceneWrapper(10, 'ctrlFlag',1, 'trialsN',1, 'path', path);
+    pause(.2)
     
-    for i=1:2
-        ShowGaussianNatScene(contrast, 2, path, presentationLength, cellSize, seed);
-        pause(.2)
-        
-        ShowGaussianNatScene(contrast, 3, path, presentationLength, cellSize, seed);
-        pause(.2)
-        
-        ShowGaussianNatScene(contrast, 4, path, presentationLength, cellSize, seed);
-        pause(.2)
-    end
+    ShowGaussianNatSceneWrapper(60, 'path', path, 'cellSize', 2);
+    pause(.2)
     
-    LuminanceChange
-
     FinishExperiment();
     
 catch exception

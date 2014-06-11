@@ -2,7 +2,6 @@ function ShowGaussianNatSceneWrapper(presentationLength, varargin)
 global screen
 try
     Add2StimLogList();
-    Wait2Start()
     
     % process Input variables
     p = ParseInput(varargin{:});
