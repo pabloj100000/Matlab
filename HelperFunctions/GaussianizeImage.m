@@ -1,6 +1,5 @@
 function [cellsMean, gradientUp, gradientLeft] = ...
-    GaussianizeImage(originalImage, cellSize, movementSize, contrast,...
-    outputSize)
+    GaussianizeImage(image, cellSize, movementSize, contrast)
 % From a given image (may be a natural scene), returns 3 arrays which can 
 % simulate something similar to the scene undergoing FEM but where each
 % pixel is actually gaussian.
@@ -16,16 +15,12 @@ function [cellsMean, gradientUp, gradientLeft] = ...
 %   Screen('FillRect', screen.w, ones(3, 1)*cellsMean, checkers)
 %
 % will display the image with the means.
-global screen
-
-debugFlag=0;
 Add2StimLogList();
 
 % convolve w_im with a square of size 'cellSize'
 h = fspecial('average', cellSize);
-smallImage = originalImage(1:outputSize, 1:outputSize);
 %smallImage = originalImage(1:cellSize*outputSize, 1:cellSize*outputSize);
-filteredImage = uint8(imfilter(smallImage, h));
+filteredImage = uint8(imfilter(image, h));
 
 cellsMean = mean(filteredImage, 3);
 
@@ -37,21 +32,22 @@ cellsMean = mean(filteredImage, 3);
 % mean and sd of each cell
 
 % subtract from filteredImage a shifted version
-gradientLeft = cellsMean(:, 1+movementSize:end) -...
-    cellsMean(:, 1:end-movementSize);
+gradientLeft = cellsMean - circshift(cellsMean, [0 movementSize]);
 
-gradientUp = cellsMean(1+movementSize:end, :) -...
-    cellsMean(1:end-movementSize, :);
+gradientUp = cellsMean - circshift(cellsMean, [movementSize 0]);
 
-% now limit all images cellsMean, gradientUp, changeDown to be the same
-% size
-sizes = [size(cellsMean); size(gradientUp); size(gradientLeft)];
-finalSize = min(sizes);
+cellsMean = (cellsMean + circshift(cellsMean, [1 1]*movementSize))/2;
+
+% Remove from graidentLeft/Up and cellsMean first 'movementSize' pixels
+% since those are mixing one edge of the image with the oposite edge.
+gradientLeft = gradientLeft(movementSize+1:end,movementSize+1:end); 
+gradientUp = gradientUp(movementSize+1:end,movementSize+1:end); 
+cellsMean = cellsMean(movementSize+1:end,movementSize+1:end);
 
 % Downsample the image to be only a given number of cells in x, y
 % Generate arrays with the cell centers
-centersX = 1:cellSize:finalSize(1);
-centersY = 1:cellSize:finalSize(2);
+centersX = 1:cellSize:size(cellsMean,1);
+centersY = 1:cellSize:size(cellsMean,2);
 
 
 cellsMean = cellsMean(centersX, centersY);
@@ -67,13 +63,6 @@ gradientLeft = gradientLeft(centersX, centersY);
 % Normalize means such that luminance are constrained to 0 and 255
 cellsMean = normalizeMeans(cellsMean, gradientUp, gradientLeft, contrast);
 
-
-if debugFlag
-    figure(1)
-    imshow(originalImage)
-    figure(2)
-    imshow(cellsMean)
-end
 end
 
 

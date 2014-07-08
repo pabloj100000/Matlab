@@ -24,9 +24,11 @@ try
 
     % mean, gradientUp and gradientLeft are 3D, change them to be 2D
     % if changes is 3D, change it to 2D 
-    means = reshape(means, size(means,2), size(means,3));
-    gradientUp = reshape(gradientUp, size(gradientUp,2), size(gradientUp,3));
-    gradientLeft = reshape(gradientLeft, size(gradientLeft,2), size(gradientLeft,3));
+    if length(size(means))==3
+        means = reshape(means, size(means,2), size(means,3));
+        gradientUp = reshape(gradientUp, size(gradientUp,2), size(gradientUp,3));
+        gradientLeft = reshape(gradientLeft, size(gradientLeft,2), size(gradientLeft,3));
+    end
     
     RS = RandStream('mcg16807', 'Seed', seed);
     
