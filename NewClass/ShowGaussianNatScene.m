@@ -33,15 +33,21 @@ try
     % process Input variables
     p = ParseInput(varargin{:});
     contrast = p.Results.contrast;
-    seed = p.Results.seed;
+    originalSeed = p.Results.seed;
     cellSize = p.Results.cellSize;
     imageID = p.Results.image;
     targets = p.Results.targets;
     home = p.Results.home;
     trialsN = p.Results.trialsN;
     presentationLength = p.Results.presentationLength;
-
+    resetSeed = p.Results.resetSeed;
+    
     InitScreen(0);
+    
+    % seed is passed to ShowCorrelatedGaussianCheckers which overwrites
+    % seed when done. If resetSeed is set, I need to have access to the
+    % originalSeed.
+    seed = originalSeed;
     
     Screen('FillRect', screen.w, 127);
     DrawMultiLineComment(screen, {'Pre processing images', '    Wait a bit and stim will start'});
@@ -88,6 +94,10 @@ try
             
             rows = fixation(1)-halfScreen:fixation(1)+halfScreen;
             cols = fixation(2)-halfScreen:fixation(2)+halfScreen;
+            
+            if resetSeed
+                seed = originalSeed;
+            end
 
             seed = ShowCorrelatedGaussianCheckers(framesN, cellSize, ...
                 cellsMean(rows, cols), gradientUp(rows,cols),...
@@ -128,6 +138,7 @@ function p = ParseInput(varargin)
     p.addParamValue('home', [500 700], @(x) all(isnumeric(x)) && ...
         all(x>0) && size(x, 1)==1 && size(x,2)==2);
     p.addParamValue('presentationLength', 1, @(x) isnumeric(x) && x>=0);
+    p.addParamValue('resetSeed', 0, @(x) x==0 || x==1);
     p.addParamValue('targets', targets, @(x) all(isnumeric(x)) && ...
         all(x(:,2)>=0) && size(x,2)==2);
     
@@ -136,6 +147,7 @@ function p = ParseInput(varargin)
     
 end
 
+%{
 function imageRect = GetImageSize(targets, home)
     % I will center the image on each target and home and display a squared
     % image of size screen.rect(4)
@@ -158,6 +170,7 @@ function imageRect = GetImageSize(targets, home)
         [home home];
 
 end
+%}
 
 function image = loadimage(imageID)
 
