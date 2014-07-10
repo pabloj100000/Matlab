@@ -4,12 +4,18 @@ try
     Add2StimLogList();
     Wait2Start()
 
-    path='/Users/baccuslab/Desktop/stimuli/Pablo/Natural Images DB/cd01A';
-    ShowGaussianNatSceneWrapper(10, 'ctrlFlag',1, 'trialsN',1, 'path', path);
+    RF;
     pause(.2)
     
-    ShowGaussianNatSceneWrapper(60, 'path', path, 'cellSize', 2);
+    CheckerPhases;
     pause(.2)
+    
+    ShowGaussianNatScene('trialsN', 100, 'presentationLength', 2);
+    pause(.2)
+    
+    ShowGaussianNatScene('trialsN', 10, 'presentationLength', 2, 'resetSeed', 1);
+    pause(.2)
+    
     
     FinishExperiment();
     
