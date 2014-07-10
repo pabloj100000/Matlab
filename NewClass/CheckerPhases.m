@@ -1,4 +1,4 @@
-function seed = ShowGaussianNatScene(varargin)
+function CheckerPhases(varargin)
 
 global screen
 try
@@ -29,7 +29,7 @@ try
 
     offsets = 0:2*checkerSize/phasesN:2*checkerSize;
     
-    pd = DefinePD()
+    pd = DefinePD();
     
     for trial=1:trialsN
         comment = {['trial : ',num2str(trial), '/', num2str(trialsN)]};
