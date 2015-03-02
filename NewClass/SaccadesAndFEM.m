@@ -1,160 +1,182 @@
 function SaccadesAndFEM(varargin)
-    % Two textures are rocked back and forth following FEM + saccades.
-    % periIndex:    -1 uses checkers
-    %               >=5 uses images
-    % periAlpha:    between 0 and 1
-    % periMeanLum:  between -127 and 127, is the deviation from gray.
+    % A texture made out of a natural scene is jittered according to FEM
+    % and saccades.
+    % FEM + Saccades sequence is repeated continuously but presentations
+    % are alternated between 0 and full contrast in the periphery to test
+    % whether we see gating of infomration with a natural scene.
+    % Texture is divided into objects and periphery. Many objects at
+    % different centers, sizes, contrasts can be defined
     %
-    % obj Parameters are the same except that center can not be checkers.
-    %
-    % Usage (interesting ones):
-    % SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1)
-    % SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1, 'periIndex', -1)
-    % SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1, 'objMeanLum', -127)
-    % SaccadesAndFEM('objAlpha', 1, 'periAlpha', 1, 'objMeanLum', -127, 'periMeanLum', 127)
+    % parameters:
+    % image_num: images are named image#
+    % obj_centers
+    % obj_sizes
+    % obj_contrasts
+    % rwStepSize
+    % saccadeSize
+    % FEM_period
+    % saccades_period
+    % refresh_period: how often monitor changes, one step into FEM sequence
+    % seed
+    
 global screen
 try    
 
     p=ParseInput(varargin{:});
     Add2StimLogList;
     
-    presentationLength = p.Results.presentationLength;
-    backReverseFreq = p.Results.backReverseFreq;
-    waitframes = p.Results.waitframes;
+    image_num = p.Results.image_num;
+    obj_centers = p.Results.obj_centers;
+    obj_sizes = p.Results.obj_sizes;            % in degrees
+    obj_contrasts = p.Results.obj_contrasts;
+    rwStepSize = p.Results.rwStepSize;          % in degrees
+    saccadeSize = p.Results.saccadeSize;        % in degrees
+    FEM_period = p.Results.FEM_period;
+    saccades_period = p.Results.saccades_period;
+    refresh_period = p.Results.refresh_period;
+    repeats = p.Results.repeats;
     seed = p.Results.seed;
-    rwStepSize = p.Results.rwStepSize;
-    saccadeSize = p.Results.saccadeSize;
-    maskRadia = p.Results.maskRadia;
-    checkersSize = p.Results.checkersSize;
-    magnification = p.Results.magnification;
-    pdMode = p.Results.pdMode;
-    repeatFEM = p.Results.repeatFEM;
-    center = p.Results.center;
-    centerShape = p.Results.centerShape;
-    
-    objIndex = p.Results.objIndex;
-    objAlpha = p.Results.objAlpha;
-    objMeanLum = p.Results.objMeanLum;
-    periIndex = p.Results.periIndex;
-    periAlpha = p.Results.periAlpha;
-    periMeanLum = p.Results.periMeanLum;
-
-
-
-    % magnification is introduce to allow to stretch the textures. TO allo
-    % stretching the textures without changing checker size and mask Size I
-    % redefine their values
-    checkersSize = checkersSize/magnification;
-    maskRadia = maskRadia/magnification;
-    saccadeSize = saccadeSize/magnification;
+    species = p.Results.species;
+    pd_scale = p.Results.pd_scale;
     
     InitScreen(0);
-    % Enable alpha-blending, set it to a blend equation useable for linear
-    % superposition with alpha-weighted source. This allows to linearly
-    % superimpose gabor patches in the mathematically correct manner, should
-    % they overlap. Alpha-weighted source means: The 'globalAlpha' parameter in
-    % the 'DrawTextures' can be used to modulate the intensity of each pixel of
-    % the drawn patch before it is superimposed to the framebuffer image, ie.,
-    % it allows to specify a global per-patch contrast value:
-    Screen('BlendFunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    % Generate the textures.
+    %{
+    % Open onscreen window on screen with maximum id:
+    screenid=max(Screen('Screens'));
+    
+    % Open onscreen window: We request a 32 bit per color component
+    % floating point framebuffer if it supports alpha-blendig. Otherwise
+    % the system shall fall back to a 16 bit per color component
+    % framebuffer:
+    PsychImaging('PrepareConfiguration');
+    PsychImaging('AddTask', 'General', 'FloatingPoint32BitIfPossible');
+    [win, winRect] = PsychImaging('OpenWindow', screenid);
+    %}
+    
+    % We use a normalized color range from now on. All color values are
+    % specified as numbers between 0.0 and 1.0, instead of the usual 0 to
+    % 255 range. This is more intuitive:
+    Screen('ColorRange', screen.w, 1, 0);
+    
+    
+    % Generate the natural scene textures.
     folder = '/Users/jadz/Documents/Notebook/Matlab/Stimuli/Images/'; % my laptop's path
     if (~isdir(folder))
         folder = '/Users/baccuslab/Desktop/stimuli/Pablo/Images/'; % D239 stimulus desktop's path
     end
     
-    objectIm = imread([folder, 'image', num2str(objIndex), '.jpg']) + objMeanLum;
-    if (objAlpha<0)
-        objectIm = (ojbectIm>screen.gray+objMeanLum)*255;
-        objAlpha=1;
-    end
-    objectTex = maskMatrix(objectIm, maskRadia, saccadeSize, 1, centerShape);
-    backTex = GetBackground(maskRadia-1, saccadeSize, periMeanLum, objMeanLum, centerShape); % the -1 is to avoid an edge problem. Take it out and see for yourself
+    objectIm = imread([folder, 'image', num2str(image_num), '.jpg']);
     
-    if (periIndex >=0)
-        peripheryIm = imread([folder, 'image', num2str(periIndex),'.jpg']) + periMeanLum;
-        if (periAlpha<0)
-            peripheryIm = (peripheryIm>mean(peripheryIm(:))+periMeanLum)*255;
-%            peripheryIm = (peripheryIm>screen.gray+periMeanLum)*255;
-            periAlpha=1;
-        end
-    else
-        peripheryIm = GetCheckers(objectIm, checkersSize);
-    end
-    peripheryTex = maskMatrix(peripheryIm, maskRadia, saccadeSize, 0, centerShape);
-
-    clear objectIm peripheryIm checkersIm
-
-    
-    destRect = Screen('Rect', objectTex)*magnification;
-    destRect = CenterRect(destRect, screen.rect);
-    
-    % Offset both screen.rect and destRect to be centered on "center"
-    % since center is given in checkers corresponding to those of RF
-    % mapping, stimulus is currently centered on the screen's center
-    % which is [16.5 16.5]
-    offset = (center-[16.5 16.5])*PIXELS_PER_100_MICRONS;
-    destRect = OffsetRect(destRect,offset(1), offset(2));
-    checkersRect = OffsetRect(screen.rect, offset(1), offset(2));
-    
-    backFrames = round(screen.rate/backReverseFreq/2/waitframes/2)*2;
-    framesN = round(presentationLength*screen.rate/waitframes);
-    framesN = round(framesN/backFrames)*backFrames;
-
+    texture = Screen('MakeTexture', screen.w, objectIm);
+        
     % init random seed generator
     randStream = RandStream('mcg16807', 'Seed', seed);
-
-    pd = DefinePD;
-    if (pdMode==1)
-        pdWhiteFrame = 2*backFrames;
-    else
-        pdWhiteFrame = framesN;
-    end
     
-    offset = saccadeSize/2;
+    % generate colors for contrast mask, I need a 4 row vector with obj
+    % contrasts in the last row. Colors in the 1st three rows will be
+    % overwritten by Screen('Drawtexture', screen.w, texture)
+    fg_contrasts = ones(4, length(obj_contrasts))*0.5;
+    fg_contrasts(4,:) = obj_contrasts;
+    
+    % change obj_sizes from degrees to pixels
+    obj_sizes = obj_sizes * MICRONS_PER_DEGREE(species) * PIXELS_PER_100_MICRONS/100;
+    
+    % Generate rects from centers and diameters
+    obj_rects = GetRects(obj_sizes, obj_centers);
+%{
+    % compute the number of frames in the sequence
+    framesN = round(FEM_period/refresh_period);
+    
+    % generate the FEM sequence, a 2D gaussian seq with 0 mean and
+    % rwStepSize standard deviation
+    FEM_seq = round(randn(randStream, framesN, 2)*rwStepSize*MICRONS_PER_DEGREE(species)*PIXELS_PER_100_MICRONS/100);
+    FEM_seq = cumsum(FEM_seq, 1);
+    
+    % add saccades at random times of random sizes
+    frames_per_fixation = round(saccades_period/refresh_period);
+    SaccadesN = length(Sacc_frames);
+    Sacc_seq = zeros(framesN,2);
+    Sacc_seq(Sacc_frames,:) = randi([-10,10], SaccadesN, 2)%[mod((1:Sacc_number),Sacc_rows)==1; ones(1, Sacc_number)]'
 
-    for frame=0:framesN-1
-        if (mod(frame, 2*backFrames)==0)
-            offset = saccadeSize/2;
-        elseif (mod(frame, backFrames)==0)
-            offset = -saccadeSize/2;
-        end
-        
-        if (repeatFEM && mod(frame, 2*backFrames)==0)
-            randStream.reset;
-        end
-        
-        step = (randi(randStream, 2)-1.5)*rwStepSize;
-        offset = offset + step;
-        
-        % display last texture
-        Screen('DrawTexture', screen.w, backTex, [], checkersRect + offset*[1 0 1 0], 0, 0);
-        Screen('DrawTexture', screen.w, objectTex, [], destRect + offset*[1 0 1 0], 0, 0, objAlpha);
-        Screen('DrawTexture', screen.w, peripheryTex, [], destRect + offset*[1 0 1 0], 0, 0, periAlpha);
-        
+    Sacc_seq = cumsum(Sacc_seq, 1);
+%    Sacc_seq = Sacc_seq * saccadeSize * MICRONS_PER_DEGREE(species) * PIXELS_PER_100_MICRONS/100;
+    % }
 
-        if (mod(frame, pdWhiteFrame)==0)
-            color=255;
+    eye_movements = 0*FEM_seq + 5*Sacc_seq;
+    %}
+    pd = DefinePD;
+
+    framesN = 100
+    frames_per_fixation = round(saccades_period/refresh_period);
+    Sacc_frames = 1:frames_per_fixation:framesN;
+    for repeat = 0:repeats
+        if mod(repeat,2)==0
+            bg_contrast = 1;
         else
-            color = screen.gray + 20*step;
+            bg_contrast = 0;
         end
         
-        Screen('FillOval', screen.w, color, pd);
-        
-        % uncomment this line to check the coordinates of the 1st checker
-        % Flip 'waitframes' monitor refresh intervals after last redraw.
-        screen.vbl = Screen('Flip', screen.w, screen.vbl + (waitframes-.5) * screen.ifi);
+        for frame=1:framesN
+            if any(Sacc_frames==frame)
+                % saccade taking place,
+                color = 255;
+            else
+                color = 127;% screen.gray + pd_scale * FEM_seq(frame+1, 1);
+            end
+            
+            
+            % Fill the whole onscreen window with a neutral 50% intensity
+            % background color and an alpha channel value of 'bgcontrast'.
+            % This becomes the clear color. After each Screen('Flip'), the
+            % backbuffer will be cleared to this neutral 50% intensity gray
+            % and a default 'bgcontrast' background noise contrast level:
+            Screen('FillRect', screen.w, [0.5 0.5 0.5 bg_contrast]);
+            
+            % Disable alpha-blending, so we can just overwrite the framebuffer
+            % with our new pixels:
+            Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO);
+            
+            % Now we overdraw some regions of the onscreen windows alpha-channel
+            % with our "modulation" image - a image that contains alpha values
+            % which encode a different contrast 'fgcontrast'. After this drawing op,
+            % the alpha-channel will contain the final "contrast modulation landscape":
+            %Screen('DrawDots', screen.w, obj_centers , obj_sizes, fg_contrasts, [], 1);
+            Screen('FillOval', screen.w, fg_contrasts, obj_rects);
 
+            
+            % Now we draw the noise texture and use alpha-blending of
+            % the drawn noise color pixels with the destination alpha-channel,
+            % thereby multiplying the incoming color values with the stored
+            % alpha values -- effectively a contrast modulation. The GL_ONE
+            % means that we add the final contrast modulated noise pixels to
+            % the current content of the window == the neutral gray background.
+            Screen('Blendfunction', screen.w, GL_DST_ALPHA, GL_ONE);
+
+            
+            
+            % The extra zero at the end forcefully disables bilinear filtering. This is
+            % not strictly neccessary on correctly working hardware, but an extra
+            % precaution to make sure that the noise values are blitted
+            % one-to-one into the offscreen 
+            Screen('DrawTexture', screen.w, texture, [], [], [], 0);
+            
+            Screen('FillOval', screen.w, color, pd);
+            
+            % uncomment this line to check the coordinates of the 1st checker
+            % Flip 'waitframes' monitor refresh intervals after last redraw.
+            screen.vbl = Screen('Flip', screen.w, screen.vbl + refresh_period - screen.ifi/2);
+            
+            if (KbCheck)
+                break
+            end
+        end
         if (KbCheck)
             break
         end
     end
-
+    
     % We have to discard the noise checkTexture.
-    Screen('Close', objectTex);
-    Screen('Close', peripheryTex);
-    Screen('Close', backTex);
+    Screen('Close', texture);
     FinishExperiment();
 
 catch exception
@@ -171,28 +193,7 @@ function array = GetCheckers(im, checkersSize)
     array = mod(floor(x/checkersSize) + floor(y/checkersSize),2)*255;    
 end
 
-function backTex = GetBackground(radia, saccadeSize, periMeanLum, objMeanLum, centerShape)
-    global screen
 
-    width = screen.rect(3);
-    height = screen.rect(4);
-    [x, y] = meshgrid(1:width, 1:height);
-    if (centerShape)
-        mask = abs(x-width/2)>radia + saccadeSize/2 | abs(y-height/2)>radia;
-    else
-        mask = ((x-width/2-saccadeSize/2).^2 + (y-height/2).^2>radia^2);
-        mask = mask.*((x-width/2+saccadeSize/2).^2 + (y-height/2).^2>radia^2);
-        mask = mask.*((abs(x-width/2)>saccadeSize/2) | (abs(y-height/2)>radia));
-    end
-    % assign to center and periphery specific colors. Since colores
-    % assigned to each mask can be anything in the range [0-255], I first
-    % make one of the mask values -1
-    mask = double(mask);
-    mask(mask==0) = -1;
-    mask(mask>0) = periMeanLum + screen.gray;
-    mask(mask==-1) = objMeanLum + screen.gray;
-    backTex = Screen('MakeTexture', screen.w, mask);
- end
 
 function p =  ParseInput(varargin)
     p  = inputParser;   % Create an instance of the inputParser class.
@@ -202,27 +203,23 @@ function p =  ParseInput(varargin)
         frameRate=100;
     end
     
-    p.addParamValue('objContrast', 1, @(x) x>=0 && x<=1);
+    p.addParamValue('image_num', 6, @(x) isnumeric(x));
+    p.addParamValue('obj_centers', [300 400 500;300,400 500], ...
+        @(x) isnumeric(x) && size(x,1)==2); %first all the x coordinates, then all the y coordinates
+    p.addParamValue('obj_sizes', [5 10 20], @(x) isnumeric(x));
+    p.addParamValue('obj_contrasts', [.5 1 .25], @(x) isnumeric(x) && ...
+        all(0<=x) && all(x<=1));
+    p.addParamValue('rwStepSize', 0.1, @(x) isnumeric(x));  % in degrees
+    p.addParamValue('saccadeSize', 5, @(x) isnumeric(x));  % in degrees
+    p.addParamValue('max_saccadeSize', 5, @(x) isnumeric(x));  % in degrees
+    p.addParamValue('FEM_period', 10, @(x) isnumeric(x));           % in seconds
+    p.addParamValue('saccades_period', 0.5, @(x) isnumeric(x));     % in seconds
+    p.addParamValue('refresh_period', 0.03, @(x) isnumeric(x));     % in seconds
+    p.addParamValue('repeats', 1000, @(x) isnumeric(x));
     p.addParamValue('seed', 1, @(x) isnumeric(x));
-    p.addParamValue('rwStepSize', 1, @(x) x>=0);
-    p.addParamValue('presentationLength', 200, @(x)x>0);
-    p.addParamValue('checkersSize', PIXELS_PER_100_MICRONS/2, @(x) x>0);
-    p.addParamValue('waitframes', round(.03*frameRate), @(x)isnumeric(x)); 
-    p.addParamValue('pdMode', 0, @(x) x==0 || x==1);
-    p.addParamValue('center', [16.5 16.5], @(x) all(size(x)==[1 2]) && all(isnumeric(x)));
-    p.addParamValue('saccadeSize', .5*PIXELS_PER_100_MICRONS, @(x) x>=0);
-    p.addParamValue('maskRadia', 4*PIXELS_PER_100_MICRONS, @(x) x>=0);
-    p.addParamValue('backReverseFreq', 1, @(x) x>=0);
-                                                                %x==-1, uses checkers
-    p.addParamValue('magnification', 1, @(x) x>=0);
-    p.addParamValue('repeatFEM', 1, @(x) x==0 || x==1);     % x==1, every period has the same FEM sequence
-    p.addParamValue('centerShape', 1, @(x) x==0 || x==1);   % x==1, rectangle center, x==0, circles + square mask
-    p.addParamValue('objIndex', 6, @(x) x>=0);
-    p.addParamValue('objAlpha', .5, @(x) x>=-1 && x<=1);
-    p.addParamValue('objMeanLum', 0, @(x) -127<=x && x<=127);
-    p.addParamValue('periIndex', 5, @(x) x>=0 || x==-1);   %x>=5 pulls an image
-    p.addParamValue('periAlpha', 1, @(x) x>=-1 && x<=1);
-    p.addParamValue('periMeanLum', 0, @(x) -127<=x && x<=127);
+    p.addParamValue('frameRate', frameRate, @(x) isnumeric(x));
+    p.addParamValue('species', 'Mice', @(x) isstr(x));
+    p.addParamValue('pd_scale', 1, @(x) isnumeric(x));
 
     % Call the parse method of the object to read and validate each argument in the schema:
     p.parse(varargin{:});

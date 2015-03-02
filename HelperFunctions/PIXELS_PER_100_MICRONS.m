@@ -1,4 +1,10 @@
 function [pixelsX] = PIXELS_PER_100_MICRONS
+    % Return how many pixels are equivalent to 100 microns on the retina.
+    % This is done by measuring the square size that matches a known object
+    % on the retinal plane. Currently I'm using the Low Density MEA that
+    % measures from side to side ~710um (7 spaces of 100um + 10um
+    % contacts). By overlaying a square of exactly the same size as the low
+    % density MEA the computation is performed.
     Add2StimLogList();
     
     [width height] = Screen('WindowSize', max(Screen('Screens')));

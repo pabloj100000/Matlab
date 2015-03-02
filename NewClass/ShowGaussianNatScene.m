@@ -33,7 +33,7 @@ try
     % process Input variables
     p = ParseInput(varargin{:});
     contrast = p.Results.contrast;
-    originalSeed = p.Results.seed;
+    seed = p.Results.seed;
     cellSize = p.Results.cellSize;
     imageID = p.Results.image;
     targets = p.Results.targets;
@@ -47,7 +47,8 @@ try
     % seed is passed to ShowCorrelatedGaussianCheckers which overwrites
     % seed when done. If resetSeed is set, I need to have access to the
     % originalSeed.
-    seed = originalSeed;
+    originalSeed = seed;
+    nextSeed = seed;
     
     Screen('FillRect', screen.w, 127);
     DrawMultiLineComment(screen, {'Pre processing images', '    Wait a bit and stim will start'});
@@ -97,9 +98,11 @@ try
             
             if resetSeed
                 seed = originalSeed;
+            elseif i==0
+                seed = nextSeed;
             end
-
-            seed = ShowCorrelatedGaussianCheckers(framesN, cellSize, ...
+            
+            nextSeed = ShowCorrelatedGaussianCheckers(framesN, cellSize, ...
                 cellsMean(rows, cols), gradientUp(rows,cols),...
                 gradientLeft(rows, cols), ...
                 contrast, seed);
@@ -132,7 +135,7 @@ function p = ParseInput(varargin)
     p.addParamValue('contrast', 1, @(x) x>=0 && x<=1);
     p.addParamValue('seed', 1, @(x) isnumeric(x));
     p.addParamValue('cellSize', PIXELS_PER_100_MICRONS/2, @(x) x>0 );
-    p.addParamValue('image', 2, @(x) isnumeric(x) && x >= 1);
+    p.addParamValue('image', 2, @(x) isnumeric(x) && x >= 0);
     p.addParamValue('trialsN', 10, @(x) x>=0);
     p.addParamValue('path', '', @(x) ischar(x));
     p.addParamValue('home', [500 700], @(x) all(isnumeric(x)) && ...
@@ -195,3 +198,21 @@ function image = loadimage(imageID)
     image = image*2^8/max(image(:));
 end
 
+%{
+function im = GetBarsImage(cellSize, targets)
+    % Generate an image that has in the center (home) a gray checker and
+    % each target position, the image is bars with a different phase and
+    % orientation. I'm going to assume that I have 8 targets, 4 are
+    % vertical bars, 4 are horizontal
+    global screen
+    
+    radii = targets(1,2)
+    im = ones(3*radii, 3*radii)*screen.gray;
+
+    subIm = meshgrid(0:radii-1, 0:radii-1);
+    
+    for i=1:size(targets,1)
+        
+    end
+end
+%}
