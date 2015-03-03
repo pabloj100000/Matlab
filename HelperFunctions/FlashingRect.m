@@ -34,7 +34,7 @@ try
         HideCursor();
         Priority(1);
     else
-        [w screenRect]=Screen('OpenWindow',screenNumber, gray);
+        [w screenRect]=Screen('OpenWindow',screenNumber, black);
     end
 
     
@@ -56,7 +56,8 @@ try
     Help{5} = 's: make bar shorter';
     Help{6} = 'use arrows to move the bar';
     screen.w = w;
-    DrawMultiLineComment(screen, Help)
+%    DrawMultiLineComment(screen, Help, 'x0', 300)
+    DrawMultiLineComment(screen, Help, 'x0', 300, 'y0', 300, 'color', [255 255 255])
     Screen('Flip', w)
 
     [width height] = Screen('WindowSize', max(Screen('Screens')));
@@ -77,7 +78,7 @@ try
         Screen('FillRect', w, color, objRect);
         vbl = Screen('Flip', w);
         
-        [~, ~, keyCode] = KbCheck;
+        [keyIsPressed, ~, keyCode] = KbCheck;
         
         increase_width = KbName('a');
         decrease_width = KbName('d');
@@ -123,6 +124,10 @@ try
             end
         elseif keyCode(escape)
             break
+
+        elseif keyIsPressed
+            DrawMultiLineComment(screen, {'Letter not recognized', ...
+                'use a,s,d,w, arrows, and escape'}, 'x0', 300, 'y0', 300, 'color', [255 255 255]);            
         end
     end;
     % allow keystrokes to writing onto script
