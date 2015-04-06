@@ -1,21 +1,5 @@
-function CenterHiDens(version)
-% Obj Parameters
-switch version
-    case 1
-        
-    case 2
-        width = 1.75;  % in mm
-        height = 2.0; % in mm
-        e_size = 70; % in um
-        e_distance = 180; % in um
-        
-end
+function CenterHiDens()
 
-% Change all distances to pixels per 100um
-width = width * PIXELS_PER_100_MICRONS * 10;
-height = height * PIXELS_PER_100_MICRONS * 10;
-e_size = e_size * PIXELS_PER_100_MICRONS/100;
-e_distance = e_distance * PIXELS_PER_100_MICRONS/100;
 
 try
     AssertOpenGL;
@@ -38,20 +22,7 @@ try
         [w screenRect]=Screen('OpenWindow',screenNumber, black);
     end
     
-    mask = ones(1,4,5);
-    electrode =  SetRect(0, 0, 1, 1)*e_size;
-
-    % Center electrode in monitor
-    electrode = CenterRect(electrode, screenRect);
-for i=1:5    
-    mask(:,:,i) = electrode;
-end
-
-    mask(:,:,1) = OffsetRect(electrode, -width/2, width/3/2);
-    mask(:,:,2) = OffsetRect(electrode, -width/2, -width/3/2);
-    mask(:,:,3) = OffsetRect(electrode, +width/2, 0);
-    mask(:,:,4) = OffsetRect(electrode, +width/2, +width/3);
-    mask(:,:,5) = OffsetRect(electrode, +width/2, -width/3);
+    mask = GetRect('HiDens_v2');
 
     % Query duration of monitor refresh intervalZ
     %ifi=Screen('GetFlipInterval', w);
@@ -63,10 +34,11 @@ end
 
     % Animationloop:
     Help{1} = 'Esc: quit stimulus';
-    Help{2} = 'z: make electrodes darker';
-    Help{3} = 'x: make electrodes lighter';
+    Help{2} = 'z: make mask darker';
+    Help{3} = 'x: make mask lighter';
     Help{4} = 'shift+z: make background darker';
     Help{5} = 'shift+x: make background lighter';
+    Help{6} = 'f: flip mask/background colors';
 
     screen.w = w;
     DrawMultiLineComment(screen, Help, 'x0', 300, 'y0', 300, 'color', [255 255 255]);
@@ -76,7 +48,7 @@ end
     
     
     % prevent keystrokes from writing onto script
-%    ListenChar(2);
+    ListenChar(2);
     while 1
         if KbCheck
             pause(0.2);
@@ -85,9 +57,7 @@ end
     end
     while 1
         Screen('FillRect', w, color);
-        for i=1:size(mask,3)
-            Screen('FillOval', w, e_color, mask(:,:,i));
-        end
+        Screen('FillRect', w, e_color, mask);
         
         vbl = Screen('Flip', w);
         
@@ -95,6 +65,7 @@ end
         
         increase_e_color = KbName('x');
         decrease_e_color = KbName('z');
+        flip_mask = KbName('f');
         back_modifier = KbName('LeftShift');
         escape = KbName('escape');
         
@@ -118,6 +89,12 @@ end
                     e_color = e_color - [1 1 1];
                 end
             end
+        end
+        
+        if keyCode(flip_mask)
+            temp = e_color;
+            e_color = color;
+            color = temp;
         end
         
         if keyCode(escape)

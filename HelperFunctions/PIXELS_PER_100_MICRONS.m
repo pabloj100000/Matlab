@@ -14,7 +14,7 @@ function [pixelsX] = PIXELS_PER_100_MICRONS
         case 800
             pixelsX = 14;
         case 1024
-            pixelsX = 18;
+            pixelsX = 17;
         case 1280
             pixelsX = 22;
         case 1680

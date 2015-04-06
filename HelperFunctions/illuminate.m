@@ -1,7 +1,10 @@
-function Illuminate()
-% Obj Parameters
-objSizeH = 800;
-objSizeV = 800;
+function illuminate(selection)
+
+if ~exist('selection')
+    selection = 'HiDens_v2';
+end
+
+objRect = GetRect(selection);
 
 switchingTime = 0.5;        % in seconds
 
@@ -37,9 +40,6 @@ try
         [w screenRect]=Screen('OpenWindow',screenNumber, black);
     end
 
-    
-    objRect = SetRect(0, 0, objSizeH, objSizeV);
-    objRect = CenterRect(objRect, screenRect);
     
     % Query duration of monitor refresh interval:
     %ifi=Screen('GetFlipInterval', w);
