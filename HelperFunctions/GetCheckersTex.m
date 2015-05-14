@@ -12,6 +12,6 @@ function Tex = GetCheckersTex(stimSize, barsWidth)
     y = mod(floor(y/barsWidth),2);
     bars = x.*y + ~x.*~y;
     bars = bars*255;
-    Tex{1} = Screen('MakeTexture', screen.w, bars);
+    Tex = Screen('MakeTexture', screen.w, bars);
 end
 

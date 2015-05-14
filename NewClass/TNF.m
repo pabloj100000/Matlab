@@ -1,25 +1,56 @@
-function [seed] = TNF(varargin)
-% center is TNF and periphery follows FEM
-% pdMode:   0 (default) pd is white only at frame 0
-%           1 pd is white ~ every saccade
+function Mouse_EM(varargin)
+% I'll show different combinations of center and peipheries following a
+% sequence of eye movements coming from a real mouse. 
+% All peripheries are combined with all centers, total number of
+% combinations is centersN * peripheriesN (most likely i'll have 4 center
+% and 4 peripheries, 2 bits on each, 4 bits total)
+% Each combination follows exactly the same eye movement sequence lasting
+% in the order of 1 to 10 seconds.
+% Every time a spatial stim (a combination of center and peri)
+% is shown, it starts from exactly the same phase (same position in the
+% screen). The only difference between two given presentations is the
+% particular combination of center and periphery.
+% The experiment is carried in blocks, each block corresponds to one
+% periphery and within each block images are not randomized but shown in
+% order. This is so that I can consider a transition between images as just
+% another stimulus and I'll have as many transitions from say center_1 to
+% center_2 as presentations of center_1 and center_2 (otherwise I'll also
+% have transitions from center_1 to center_3/4)
+% I will have a mask in between the center and the periphery (could be of
+% zero size in which case it will not exist)
+% The 4 peripheries will be a gray screen, a checkerboard and two natural
+% scenes. There will probably be a large eye movement in the sequence, try
+% to make the checkerboard such that it has strong peripheral stimulaiton
+% for such an eye movement. Also try to make the checkerboard such that
+% when transitioning from center_1 to center_2 it has strong peripheral
+% input.
 
 global screen
     
 try
     % process Input variables
     p = ParseInput(varargin{:});
-    waitframes = p.Results.waitframes;
-    seed = p.Results.seed;
-    presentationLength = p.Results.presentationLength;
-    checkersSize = p.Results.checkersSize;
-    backContrast = p.Results.backContrast;
-    backReverseFreq = p.Results.backReverseFreq;
-    stimSize = p.Results.stimSize;
-    trialsN = p.Results.trialsN;
+
+    eye_movement_length = p.Results.eye_movement_length;
+    eye_movement_file = p.Results.eye_movement_file;
+    eye_movement_startT = p.Results.eye_movement_startT;
+    
+    center_size = p.Results.center_size;
+    mask_size = p.Results.mask_size;
+    periphery_size = p.Results.periphery_size;
+    trials_per_block = p.Results.trials_per_block;
+    blocksN = p.Results.blocksN;
     objContrast = p.Results.objContrast;
-    peripheryStep = p.Results.peripheryStep;
-    objSize = p.Results.objSize;
-    pdMode = p.Results.pdMode;
+
+    % parameters to define center images. First two images will also be
+    % used to generate peripheries
+    im_centers = p.Results.im_centers;
+    
+    % not a parameter, load this from the mouse file
+    sampling_freq = p.Results.sampling_freq;
+
+    % try to compute checkerSize optimally from the eye movement sequence
+    checkersSize = p.Results.checkersSize;
 
     % start the stimulus
     InitScreen(0)

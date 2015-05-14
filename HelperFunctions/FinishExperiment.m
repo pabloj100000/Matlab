@@ -9,7 +9,7 @@ function FinishExperiment()
         
         Screen('CloseAll');         % Close all open onscreen and offscreen
         if  max(Screen('Screens'))==0
-            button = questdlg('Save log file?','','Yes');
+            button = questdlg('Save log file?','Finishing experiment', 'Yes');
             if (strcmp(button, 'Yes'));
                 CreateStimuliLog();
             end

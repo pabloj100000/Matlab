@@ -1,51 +1,44 @@
 function test()
-    global screen
-    
-    % process Input variables
-    InitScreen()
-    % I want framesN to have an even number of background reversals
-    % 
-    updateTime = 1/screen.rate-1/screen.rate/2;
 
-    screen.vbl = Screen('Flip', screen.w);
+[screen.w screen.rect] = Screen('OpenWindow',0, [0 0 0]);
 
-    times = ones(2,10);
-    
-    for frame = 1:10
-        Screen('FillRect', screen.w);
-        oldvbl = screen.vbl;
-        screen.vbl = Screen('Flip', screen.w, screen.vbl + updateTime);
-        times(1,frame) = screen.vbl-oldvbl;
-        oldvbl = screen.vbl;
-        screen.vbl = Screen('Flip', screen.w, screen.vbl + updateTime, 1);
-        times(2,frame) = screen.vbl-oldvbl;
-    end
-    
-    figure(1)
-    plot(times(1,:), 'r')
-    hold on
-    plot(times(2,:))
-    hold off
-    Screen('CloseAll')
-    
-end
+% Draw a red square
+Screen('FillRect', screen.w, [255 0 0], [0 0 200 200]);
+Screen('Flip', screen.w);
+pause(1);
 
-function InitScreen()
-    global screen
+% disable writing to the red channel 
+Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [0 1 1 1]);
 
-    screen.rate = Screen('NominalFrameRate', max(Screen('Screens')));
-    AssertOpenGL;
+% Draw to R and G channels, but only G pixels should draw
+Screen('FillRect', screen.w, [255 255 0], [100 0 300 200]);
+Screen('Flip', screen.w);
+pause(1);
 
-    screenNumber=max(Screen('Screens'));
+Screen('Flip', screen.w);
+pause(1);
 
-    screen.w = Screen('OpenWindow',screenNumber, 0);
+% Write only to the alpha channel
+Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [0 0 0 1]);
+% Set alpha to 0 in a small square
+Screen('FillRect', screen.w, [0 0 0 0], [0 0 200 200]);
+% Reenable writing to RGB channels
+Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [1 1 1 0]);
+% Draw in a region that overlaps with the previuos one. I expect only part of the
+% square should be drawn
+Screen('FillRect', screen.w, [255 255 255], [100 0 300 200]);
+Screen('Flip', screen.w);
+pause(1);
 
-    Priority(1);
-   
-    % Query duration of monitor refresh interval:
-    screen.ifi=Screen('GetFlipInterval', screen.w);
+Screen('Flip', screen.w);
+pause(1);
 
-    screen.vbl = 0;
-end
+% same example but writing 255 in the alpha channel
+Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [0 0 0 1]);
+Screen('FillRect', screen.w, [0 0 0 255], [0 0 200 200]);
+Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO, [1 1 1 0]);
+Screen('FillRect', screen.w, [255 255 255], [100 0 300 200]);
+Screen('Flip', screen.w);
+pause(1);
 
-
+sca;
