@@ -12,24 +12,33 @@ function Mouse_Eye_Movement(eye_diameter, varargin)
 % is shown, it starts from exactly the same phase (same position in the
 % screen). The only difference between two given presentations is the
 % particular combination of center and periphery.
+% Therefore at each point in time, only three parameters are needed to
+% define exactly what is on the screen. Those parameters are: peri image,
+% center image, time into the fixationl eye movement sequence.
+%
 % The experiment is carried in blocks, each block corresponds to one
-% periphery and within each block images are not randomized but shown in
-% order. This is so that I can consider a transition between images as just
-% another stimulus and I'll have as many transitions from say center_1 to
-% center_2 as presentations of center_1 and center_2 (otherwise I'll also
-% have transitions from center_1 to center_3/4)
+% periphery and within each block center images are not randomized but 
+% shown in order. This is so that I can consider a transition between 
+% images as just another stimulus and I'll have as many transitions as
+% center images and not the square of the number of central images.
 % I will have a mask in between the center and the periphery (could be of
-% zero size in which case it will not exist).
+% zero size in which case is the same as no mask).
 % Center can be placed anywhere (expressed in degrees or pixels? relative
 % to the screen center). Periphery will be as large as possible, depending
 % on the array its size might have to be limited to avoid interfiering with
 % electronics)
-% The 4 peripheries will be a gray screen, a checkerboard and two natural
-% scenes. There will probably be a large eye movement in the sequence, try
+% The 4 peripheries will be:
+%   gray screen (somewhat like looking at the world through a tube)
+%   checkerboard
+%   and two natural scenes.
+%
+% There will probably be a large eye movement in the sequence, try
 % to make the checkerboard such that it has strong peripheral stimulaiton
-% for such an eye movement. Also try to make the checkerboard such that
-% when transitioning from center_1 to center_2 it has strong peripheral
-% input.
+% for such an eye movement.
+%
+% All movements are in passive mode, meaning that the central stimulus
+% does not move on the retina. What moves is the image projected onto the
+% fixed central retinal patch
 
 global screen
 Add2StimLogList();
@@ -165,7 +174,9 @@ function eye_movements = LoadEyeMovements(file, startT, length)
     
     monitor_rate = Screen('NominalFrameRate', max(Screen('Screens')));
     
-    if monitor_rate ~= exp_rate;
+    if monitor_rate == 0;
+        % do nothing, running from laptop
+    elseif monitor_rate ~= exp_rate;
         msg = ['Data collected at ', num2str(exp_rate), ...
             'Hz, but monitor is set to ', num2str(monitor_rate), 'Hz.'];
         error(msg);
@@ -238,21 +249,22 @@ function [center_rect, mask_rect, peri_rect, offset, pd] = GetRectangles(...
     pd = GetRect('pd');
 end
 
-function OneTrial(peri_tex, center_tex, obj_contrast, peri_rect, center_rect, mask_rect, offset, chip_type, sequence)
+function OneTrial(peri_tex, center_tex, obj_contrast, peri_rect, center_rect, mask_rect, patch_offset, chip_type, sequence)
+% Jitter around peri_tex and center_tex
     global screen
     
     for frame = 1:size(sequence,1)
-        total_offset = offset + [sequence(frame,1) sequence(frame,2) sequence(frame,1) sequence(frame,2)];
+        im_offset = [sequence(frame,1) sequence(frame,2) sequence(frame,1) sequence(frame,2)];
 
         % Draw Periphery
-        Screen('DrawTexture', screen.w, peri_tex, peri_rect, peri_rect + total_offset, 0, 0);
+        Screen('DrawTexture', screen.w, peri_tex, peri_rect + im_offset, peri_rect + patch_offset, 0, 0);
         
         % Fill circular 'mask_rect' region with gray
-        Screen('FillRect', screen.w, screen.gray, mask_rect + total_offset);
+        Screen('FillRect', screen.w, screen.gray, mask_rect + patch_offset);
         
         % Draw center
         Screen('Blendfunction', screen.w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        Screen('DrawTexture', screen.w, center_tex, center_rect, center_rect + total_offset, 0, 0, obj_contrast);
+        Screen('DrawTexture', screen.w, center_tex, center_rect + im_offset, center_rect + patch_offset, 0, 0, obj_contrast);
         Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO);
         
         MaskHiDensArray(chip_type);
