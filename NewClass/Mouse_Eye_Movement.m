@@ -132,8 +132,16 @@ end
 function p = ParseInput(varargin)
     p  = inputParser;   % Create an instance of the inputParser class.
 
+    path1 = '/Users/jadz/Documents/Notebook/Matlab/Eye tracking Mice/Marcel De Jeu/Data/mouse2-HV.mat';
+    path2 = '~/Desktop/stimuli/pablo/Marcel De Jeu/Data/mouse2-HV';
+    if exist(path1, 'file')
+        path = path1;
+    else
+        path = path2;
+    end
+        
     p.addParameter('eye_movement_file', ...
-        '/Users/jadz/Documents/Notebook/Matlab/Eye tracking Mice/Marcel De Jeu/Data/mouse2-HV', ...
+        path, ...
         @(x) exist(x, 'file'));
     p.addParameter('eye_movement_startT', 105, @(x) x>0);
     p.addParameter('eye_movement_length', 5, @(x) x>0);
