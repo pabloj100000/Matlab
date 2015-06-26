@@ -13,9 +13,9 @@ try
     
     Wait2Start();
     
-    framesN = 10 * screen.rate/waitframes;       % # of frames for 10 s stimulus
+    framesN = 50 * screen.rate/waitframes;       % # of frames for 10 s stimulus
 
-    pd_colors = stim2pdColors(stim_number, base, digits);
+    pd_colors = stim2pdColors(stim_number, base, digits) * 255/(base);
     
     % Animationloop:
     for frame=0:framesN-1
@@ -25,7 +25,7 @@ try
         if (frame==0)
             pdColor = 255;
         elseif (frame <= digits)
-            pdColor = pd_colors(frame)*255/(base+1);
+            pdColor = pd_colors(frame);
         else
             pdColor = rand(1)*255;
         end
