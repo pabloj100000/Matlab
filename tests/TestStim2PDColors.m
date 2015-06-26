@@ -11,7 +11,8 @@ try
         pd = DefinePD();
     end
     
-
+    Wait2Start();
+    
     framesN = 10 * screen.rate/waitframes;       % # of frames for 10 s stimulus
 
     pd_colors = stim2pdColors(stim_number, base, digits);
