@@ -18,6 +18,8 @@ function RF(varargin)
     waitframes = p.Results.waitframes;
     objCenterXY = p.Results.objCenterXY;
     noise.type = p.Results.noiseType;
+    chip_type = p.Results.chip_type;    % this is preventing illumination of
+ 
 try
     InitScreen(0);
     Add2StimLogList();
@@ -47,7 +49,7 @@ try
 
     % Animationloop:
     RandomCheckers(framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
-        randomStream, pd, whiteFrames, objRect, noise);
+        randomStream, pd, whiteFrames, objRect, noise, chip_type);
 
     FinishExperiment();
     
@@ -60,7 +62,7 @@ end %try..catch..
 end
 
 function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, ...
-    objContrast, randomStream, pd, whiteFrames, objRect, noise)
+    objContrast, randomStream, pd, whiteFrames, objRect, noise, chip_type)
     global screen
 
     
@@ -94,8 +96,11 @@ function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, 
             color = objColor(1,1)/2+screen.gray/2;
         end
         
+        MaskHiDensArray(chip_type);
+ 
         % Draw the PD box
         Screen('FillOval', screen.w, color, pd);
+        
         
         % uncomment this line to check the coordinates of the 1st checker
         % Flip 'waitframes' monitor refresh intervals after last redraw.
@@ -140,18 +145,19 @@ function p =  ParseInput(varargin)
         frameRate=100;
     end
     
-    p.addParamValue('objContrast', 1, @(x) x>=0 && x<=1);
-    p.addParamValue('seed', 1, @(x) isnumeric(x));
-    p.addParamValue('movieDurationSecs', 1000, @(x)x>0);
-    p.addParamValue('stimSize', 32*PIXELS_PER_100_MICRONS*[1 1], @(x) all(size(x)==[1 2]) && all(x>0));
-    p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
-    p.addParamValue('checkerSizeX', PIXELS_PER_100_MICRONS, @(x) x>0);
-    p.addParamValue('checkerSizeY', PIXELS_PER_100_MICRONS, @(x) x>0);
-    p.addParamValue('waitframes', round(.033*frameRate), @(x)isnumeric(x)); 
-    p.addParamValue('objCenterXY', [0 0], @(x) all(size(x) == [1 2]));
-    p.addParamValue('pdStim', 0, @(x) isnumeric(x));
-    p.addParamValue('noiseType', 'binary', @(x) strcmp(x,'binary') || ...
+    p.addParameter('objContrast', 1, @(x) x>=0 && x<=1);
+    p.addParameter('seed', 1, @(x) isnumeric(x));
+    p.addParameter('movieDurationSecs', 1000, @(x)x>0);
+    p.addParameter('stimSize', 32*PIXELS_PER_100_MICRONS*[1 1], @(x) all(size(x)==[1 2]) && all(x>0));
+    p.addParameter('debugging', 0, @(x)x>=0 && x <=1);
+    p.addParameter('checkerSizeX', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParameter('checkerSizeY', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParameter('waitframes', round(.033*frameRate), @(x)isnumeric(x)); 
+    p.addParameter('objCenterXY', [0 0], @(x) all(size(x) == [1 2]));
+    p.addParameter('pdStim', 0, @(x) isnumeric(x));
+    p.addParameter('noiseType', 'binary', @(x) strcmp(x,'binary') || ...
         strcmp(x,'gaussian'));
+    p.addParameter('chip_type', 'HiDens_v3', @(x) isstring(x));   % in what units?
     
     % Call the parse method of the object to read and validate each argument in the schema:
     p.parse(varargin{:});
