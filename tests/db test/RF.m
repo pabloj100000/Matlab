@@ -24,8 +24,6 @@ try
     InitScreen(0);
     Add2StimLogList();
 
-    start_t = datestr(now, 'HH:MM:SS');
-    
     checkersN_H = ceil(stimSize(1)/checkerSizeX);
     checkersN_V = ceil(stimSize(2)/checkerSizeY);
     
@@ -54,7 +52,7 @@ try
         randomStream, pd, whiteFrames, objRect, noise, chip_type);
 
     FinishExperiment();
-    add_experiments_to_db(start_t, varargin)
+    
 catch exception
     %this "catch" section executes in case of an error in the "try" section
     %above. Importantly, it closes the onscreen window if its open.

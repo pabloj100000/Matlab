@@ -72,10 +72,7 @@ try
     
     % start the stimulus
     InitScreen(0)
-    
-    start_t = datestr(now, 'HH:MM:SS');
 
-%    SetResolution(1, 800, 600, 120);
     movement_seq = LoadEyeMovements(eye_movement_file, ...
         eye_movement_startT, eye_movement_length);
     % plot(movement_seq(:,1), movement_seq(:,2));
@@ -121,7 +118,6 @@ try
 
     % After drawing, we have to discard the noise checkTexture.
     FinishExperiment();
-    add_experiments_to_db(start_t, [eye_diameter, varargin]);
         
 catch exception
     %this "catch" section executes in case of an error in the "try" section

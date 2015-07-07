@@ -33,11 +33,11 @@ function InitScreen(debugging, varargin)
 
     
     % Get the list of screens and choose the one with the highest screen number.
-    screenNumber=max(Screen('Screens'));
+    screen.screenNumber=max(Screen('Screens'));
 
     % Find the color values which correspond to white and black.
-    screen.white=WhiteIndex(screenNumber);
-    screen.black=BlackIndex(screenNumber);
+    screen.white=WhiteIndex(screen.screenNumber);
+    screen.black=BlackIndex(screen.screenNumber);
 
     % Round gray to integral number, to avoid roundoff artifacts with some
     % graphics cards:
@@ -51,16 +51,16 @@ function InitScreen(debugging, varargin)
     end
     
     % Open a double buffered fullscreen window with a gray background:
-    if (screenNumber == 0)
+    if (screen.screenNumber == 0)
         if (debugging)
-            [screen.w screen.rect]=Screen('OpenWindow',screenNumber, backColor, [10 10 400 400]);
+            [screen.w screen.rect]=Screen('OpenWindow',screen.screenNumber, backColor, [10 10 400 400]);
         else
-            [screen.w screen.rect]=Screen('OpenWindow',screenNumber, backColor);
+            [screen.w screen.rect]=Screen('OpenWindow',screen.screenNumber, backColor);
             HideCursor();
         end
         Priority(1);
     else
-        [screen.w screen.rect]=Screen('OpenWindow',screenNumber, backColor);
+        [screen.w screen.rect]=Screen('OpenWindow',screen.screenNumber, backColor);
     end
 
     %    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
