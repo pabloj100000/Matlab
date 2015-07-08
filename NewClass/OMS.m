@@ -23,7 +23,7 @@ stimSize = p.Results.stimSize;
 waitframes = p.Results.waitframes;
 
 try
-    InitScreen(0);
+    InitScreen(0, 800, 600, 100);
     Add2StimLogList();
     
     % make the background texture
@@ -159,7 +159,8 @@ try
     
     % After drawing, we have to discard the noise checkTexture.
     Screen('Close', checkerTexture);
-    
+    Screen('CloseAll');
+
     FinishExperiment();
     
 catch
@@ -182,7 +183,7 @@ if (rate==0)
 end
 
 % General
-p.addParamValue('presentationLength', 100, @(x)x>0);
+p.addParamValue('presentationLength', 30, @(x)x>0);
 p.addParamValue('stimSize', 32*PIXELS_PER_100_MICRONS, @(x)x>0);
 p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
 p.addParamValue('waitframes', round(rate/30), @(x)x>0);

@@ -21,7 +21,8 @@ function RF(varargin)
     chip_type = p.Results.chip_type;    % this is preventing illumination of
  
 try
-    InitScreen(0);
+
+    InitScreen(0, 1024, 768, 100);
     Add2StimLogList();
 
     start_t = datestr(now, 'HH:MM:SS');

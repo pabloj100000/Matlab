@@ -24,16 +24,16 @@ function DisplayStimInPD2(stim, pd, frame, framesPerCode, screen)
         Screen('FillOval', screen.w, screen.white, pd);
     elseif (temp==1)    % display bit0
         % Change stim into the colors needed for the pd
-        pdColors = stim2pdColors(stim);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
+        pdColors = stim2pdColors(stim, 4, 4);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
         Screen('FillOval', screen.w, pdColors(1), pd);
     elseif (temp==2)   % display bit1
-        pdColors = stim2pdColors(stim);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
+        pdColors = stim2pdColors(stim,4, 4);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
         Screen('FillOval', screen.w, pdColors(2), pd);
     elseif (temp==3)   % display bit2
-        pdColors = stim2pdColors(stim);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
+        pdColors = stim2pdColors(stim, 4, 4);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
         Screen('FillOval', screen.w, pdColors(3), pd);
     elseif (temp==4)   % display bit3
-        pdColors = stim2pdColors(stim);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
+        pdColors = stim2pdColors(stim, 4, 4);    % stim = pdColor(1)*4^0 + pdColor(2)*4^1 + pdColor(2)*4^2 + pdColor(3)*4^3
         Screen('FillOval', screen.w, pdColors(4), pd);
     else
         AlmostBlack = 15;       

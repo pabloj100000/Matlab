@@ -1,7 +1,7 @@
 function illuminate(selection)
 
 if ~exist('selection')
-    selection = 'HiDens_v2';
+    selection = 'HiDens_v3';
 end
 
 objRect = GetRect(selection);

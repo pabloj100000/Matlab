@@ -71,11 +71,10 @@ try
     
     
     % start the stimulus
-    InitScreen(0)
+    InitScreen(0, 1024, 768, 120);
     
     start_t = datestr(now, 'HH:MM:SS');
 
-%    SetResolution(1, 800, 600, 120);
     movement_seq = LoadEyeMovements(eye_movement_file, ...
         eye_movement_startT, eye_movement_length);
     % plot(movement_seq(:,1), movement_seq(:,2));

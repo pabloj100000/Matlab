@@ -77,7 +77,7 @@ function returnSeed = UFlickerObj(varargin)
     end
     
 try
-    InitScreen(0);
+    InitScreen(0, 800, 600, 100);
     Add2StimLogList();
     
     % make the background texture
@@ -190,7 +190,7 @@ try
             end
             
             JitteringBackTex_UniformFieldObj(backSeq, objSeq, ...
-                waitframes, framesN, backTex{1}, backAngle, barsWidth, pdStim)
+                waitframes, framesN, backTex, backAngle, barsWidth, pdStim)
             % Previous function DID modify backSource. Recenter it to prevent
             % too much sliding of the texture.
             % Is not perfect and sliding will still take place but will be
@@ -208,11 +208,11 @@ try
     
     if (clearBackTexFlag)
         % After drawing, we have to discard the noise checkTexture.
-        Screen('Close', backTex{1});
+        Screen('Close', backTex);
     end
     
     returnSeed = S.State;
-    
+    Screen('CloseAll');
     FinishExperiment();
     
 catch exception
@@ -262,7 +262,7 @@ function p =  ParseInput(varargin)
     p.addParamValue('backJitterPeriod', 2, @(x)x>0);
     p.addParamValue('backReverseFreq', 1, @(x) x>0);
     p.addParamValue('backTexture', [], @(x) iscell(x));
-    p.addParamValue('backRect', GetRects(screenY, [screenX screenY]/2), @(x) isnumeric(x) && size(x,2)==4);
+    p.addParamValue('backRect', GetRects(screenY, [screenX; screenY]/2), @(x) isnumeric(x) && size(x,2)==4);
     p.addParamValue('backPattern', 1, @(x) x==0 || x==1);
     p.addParamValue('angle', 0, @(x) isnumeric(x));
     

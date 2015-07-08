@@ -34,7 +34,7 @@ end
     almostBlack = p.Results.almostBlack;
     
 try
-    InitScreen(0);
+    InitScreen(0, 800, 600, 100);
     Add2StimLogList();
 
     % each presentation will have all possible contrasts.

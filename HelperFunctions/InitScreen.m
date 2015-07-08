@@ -1,4 +1,4 @@
-function InitScreen(debugging, varargin)
+function InitScreen(debugging, width, height, rate, varargin)
     % Initializes the Screen.
     % The idea here is that you can call this function from within a given
     % stimulus where the 2nd parameter might or might no be defined. If it
@@ -22,18 +22,19 @@ function InitScreen(debugging, varargin)
 
     AssertOpenGL;
 
+    % Get the list of screens and choose the one with the highest screen number.
+    screen.screenNumber=max(Screen('Screens'));
+
     % if Nominal rate is 0, (running from a laptop) Psychtoolbox is failing
     % to initialize the screen because there are synchronization problems. I
     % don't care about those problems when running in my laptop. Experiment
     % would never be run under those conditions. Force it to start anyway
-    screen.rate = Screen('NominalFrameRate', 0);
+    screen.rate = Screen('NominalFrameRate', screen.screenNumber);
     if screen.rate==0
         Screen('Preference', 'SkipSyncTests',1);
+    else
+        Screen('Resolution', screen.screenNumber, width, height, rate);
     end
-
-    
-    % Get the list of screens and choose the one with the highest screen number.
-    screen.screenNumber=max(Screen('Screens'));
 
     % Find the color values which correspond to white and black.
     screen.white=WhiteIndex(screen.screenNumber);
@@ -64,7 +65,7 @@ function InitScreen(debugging, varargin)
     end
 
     %    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));
-    [screen.center(1) screen.center(2)] = WindowCenter(screen.w);%[screenX screenY]/2;
+    [screen.center(1,1) screen.center(2,1)] = WindowCenter(screen.w);%[screenX screenY]/2;
     
     % Query duration of monitor refresh interval:
     screen.ifi=Screen('GetFlipInterval', screen.w);
