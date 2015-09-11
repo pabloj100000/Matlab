@@ -5,8 +5,7 @@ function RF_timestamp(varargin)
     % objContrast, objJitterPeriod, objSeed, stimSize, objSizeH, objSizeV,
     % objCenterXY, backContrast, backJitterPeriod, presentationLength,
     % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
-    global screen
-
+    
     p=ParseInput(varargin{:});
 
     objContrast = p.Results.objContrast;
@@ -21,8 +20,7 @@ function RF_timestamp(varargin)
     chip_type = p.Results.chip_type;    % this is preventing illumination of
  
 try
-    InitScreen(0);
-    
+    screen = InitScreen(0, 800, 600, 100);
 
     checkersN_H = ceil(stimSize(1)/checkerSizeX);
     checkersN_V = ceil(stimSize(2)/checkerSizeY);
@@ -49,13 +47,17 @@ try
 
     start_t = datestr(now, 'HH:MM:SS');
     % Animationloop:
-    RandomCheckers(framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
+    RandomCheckers(screen, framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
         randomStream, pd, whiteFrames, objRect, noise, chip_type);
 
     
-    FinishExperiment();
-    add_experiments_to_db(start_t, varargin);
+    Screen('CloseAll')
+    Priority(0);
+    ShowCursor();
     
+    add_experiments_to_db(start_t, varargin)
+
+
 catch exception
     %this "catch" section executes in case of an error in the "try" section
     %above. Importantly, it closes the onscreen window if its open.
@@ -65,10 +67,8 @@ end %try..catch..
     
 end
 
-function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, ...
+function [exitFlag] = RandomCheckers(screen, framesN, waitframes, checkersV, checkersH, ...
     objContrast, randomStream, pd, whiteFrames, objRect, noise, chip_type)
-    global screen
-
     
     for frame = 0:framesN-1
 
@@ -100,7 +100,7 @@ function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, 
             color = objColor(1,1)/2+screen.gray/2;
         end
         
-        MaskHiDensArray(chip_type);
+        MaskHiDensArray(screen, chip_type);
  
         % Draw the PD box
         Screen('FillOval', screen.w, color, pd);

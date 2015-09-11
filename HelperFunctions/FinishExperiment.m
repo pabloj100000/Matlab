@@ -4,9 +4,9 @@ function FinishExperiment()
     % screen. 
     Add2StimLogList();
     
+%{    
     s = dbstack('-completenames');
     if size(s,1)<=2
-%{    
         
         Screen('CloseAll');         % Close all open onscreen and offscreen
         if  max(Screen('Screens'))==0
@@ -15,13 +15,11 @@ function FinishExperiment()
                 CreateStimuliLog();
             end
         end
-%}
-        clear global
-        % windows and textures, movies and video
-        % sources. Release nearly all ressources.
-        Priority(0);
-        ShowCursor();
     end
+%}
+    Screen('CloseAll');
+    Priority(0);
+    ShowCursor();
 end
 
 

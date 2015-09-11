@@ -148,7 +148,7 @@ try
     
     % for efficiency preallocate objSeq
     objSeq = ones(1, objJumpsPerPeriod);
-[presentationsN framesN]    
+    
     % Animationloop:
     for presentation = 1:presentationsN
 
@@ -213,7 +213,8 @@ try
     
     returnSeed = S.State;
     Screen('CloseAll');
-    FinishExperiment();
+    Priority(0);
+    ShowCursor();
     
 catch exception
     %this "catch" section executes in case of an error in the "try" section

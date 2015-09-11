@@ -1,7 +1,7 @@
-function MaskHiDensArray(array_name)
+function MaskHiDensArray(screen, array_name)
     % Paint all screen in black except the center rectangle defined by 
     % 'array_name'
-    global screen
+    % array_name should be one of {
     
     Add2StimLogList();
     array_mask = GetRect(array_name);

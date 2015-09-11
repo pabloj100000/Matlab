@@ -6,13 +6,6 @@ function Sensitization(varargin)
 % Object will be a given texture changing phases every so often.
 % Back will be a grating of a giving contrast and spatial frequency
 % that reverses periodically at backReverseFreq.
-
-global screen pd
-
-if isempty(screen)
-    screen.rate = max(Screen('NominalFrameRate', max(Screen('Screens'))),60);
-end
-
     p  = inputParser;   % Create an instance of the inputParser class.
 
     [screenWidth screenHeight] = SCREEN_SIZE;
@@ -20,7 +13,7 @@ end
     p.addParamValue('hiLength', 4, @(x) x>0);
     p.addParamValue('repeats', 25, @(x) x>0);
     p.addParamValue('stimSize', screenHeight, @(x) x>0);
-    p.addParamValue('waitframes', round(screen.rate/30), @(x) x>0);
+    p.addParamValue('waitframes', 3, @(x) x>0);
     p.addParamValue('almostBlack', 50, @(x) x>0);
     
     p.parse(varargin{:});
@@ -34,8 +27,9 @@ end
     almostBlack = p.Results.almostBlack;
     
 try
-    InitScreen(0, 800, 600, 100);
+    screen = InitScreen(0, 800, 600, 100);
     Add2StimLogList();
+    start_t = datestr(now, 'HH:MM:SS');
 
     % each presentation will have all possible contrasts.
 
@@ -89,8 +83,12 @@ try
         end
     end
     
-    FinishExperiment();
-    
+    Screen('CloseAll');
+    Priority(0);
+    ShowCursor();
+
+    add_experiments_to_db(start_t, varargin);
+
 catch
     %this "catch" section executes in case of an error in the "try" section
     %above. Importantly, it closes the onscreen window if its open.

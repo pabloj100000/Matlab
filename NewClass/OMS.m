@@ -6,8 +6,6 @@ function newSeed = OMS(varargin)
 % Back will be a grating of a giving contrast and spatial frequency
 % that reverses periodically at backReverseFreq.
 
-global screen pd
-
 p=ParseInput(varargin{:});
 
 backContrast = p.Results.backContrast;
@@ -23,7 +21,8 @@ stimSize = p.Results.stimSize;
 waitframes = p.Results.waitframes;
 
 try
-    InitScreen(0, 800, 600, 100);
+    screen = InitScreen(0, 800, 600, 100);
+    start_t = datestr(now, 'HH:MM:SS');
     Add2StimLogList();
     
     % make the background texture
@@ -158,11 +157,12 @@ try
     
     
     % After drawing, we have to discard the noise checkTexture.
-    Screen('Close', checkerTexture);
     Screen('CloseAll');
-
-    FinishExperiment();
+    Priority(0);
+    ShowCursor();
     
+    add_experiments_to_db(start_t, varargin)
+
 catch
     %this "catch" section executes in case of an error in the "try" section
     %above. Importantly, it closes the onscreen window if its open.

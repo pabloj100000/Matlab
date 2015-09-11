@@ -1,9 +1,14 @@
 function rect = GetRect(selection)
+% Define a few commonly used rectangles
+% pd, HIDens_v3, etc
+% GetRect returns a rectangle matching the full screen if nothing matches
+% 'selection'
 
 Add2StimLogList();
 
 [windowSizeX windowSizeY] = Screen('WindowSize', max(Screen('Screens')));
 
+rect = SetRect(0, 0, windowSizeX, windowSizeY);
 if strcmpi(selection, 'pd')
     
     %    [screenX, screenY] = Screen('WindowSize', max(Screen('Screens')));

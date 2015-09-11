@@ -40,7 +40,6 @@ function Mouse_Eye_Movement(eye_diameter, varargin)
 % does not move on the retina. What moves is the image projected onto the
 % fixed central retinal patch
 
-global screen
 Add2StimLogList();
     
 try
@@ -71,7 +70,7 @@ try
     
     
     % start the stimulus
-    InitScreen(0, 1024, 768, 120);
+    screen = InitScreen(0, 800, 600, 120);
     
     start_t = datestr(now, 'HH:MM:SS');
 
@@ -86,16 +85,16 @@ try
     movement_seq = movement_seq * PIXELS_PER_DEGREE(eye_diameter);
 
     [center_rect, mask_rect, peri_rect, offset, screen.pd] = GetRectangles(...
-        center_size, mask_size, center_center, chip_type);
+        screen, center_size, mask_size, center_center, chip_type);
 
-    textures = GetTextures(checkers_size, im_ids, im_path, eye_diameter, peri_rect);
+    textures = GetTextures(screen, checkers_size, im_ids, im_path, eye_diameter, peri_rect);
 
     % loop through the textures
     for block = 1:blocksN
         for peri = 1:periN
             for trial = 1:trials_per_block
                 for center = 3:length(textures)
-                    OneTrial(textures{peri}, textures{center}, obj_contrast, ...
+                    OneTrial(screen, textures{peri}, textures{center}, obj_contrast, ...
                         peri_rect, center_rect, mask_rect, offset, chip_type, movement_seq);
                     
                     if KbCheck
@@ -119,9 +118,12 @@ try
     % try to compute checker_size optimally from the eye movement sequence
 
     % After drawing, we have to discard the noise checkTexture.
-    FinishExperiment();
+    Screen('CloseAll');
+    Priority(0);
+    ShowCursor();
     add_experiments_to_db(start_t, [eye_diameter, varargin]);
-        
+
+    
 catch exception
     %this "catch" section executes in case of an error in the "try" section
     %above. Importantly, it closes the onscreen window if its open.
@@ -194,14 +196,13 @@ function eye_movements = LoadEyeMovements(file, startT, length)
     end
 end
 
-function textures = GetTextures(checkers_size, im_ids, im_path, eye_diameter, peri_rect)
+function textures = GetTextures(screen, checkers_size, im_ids, im_path, eye_diameter, peri_rect)
     % load images from im_path (associated with im_ids) and create textures
     % from them.
     % Original images are such that 46 pixels correspond to 1 degree of
     % visual angle. I'm changing the picture size such that 1 degree in the
     % images matches PIXELS_PER_DEGREE. For most eyes (3-4 mm in diameter)
     % this is a huge reduction in image size and images are no longer
-    global screen
     
     textures = cell(length(im_ids)+2, 1);
     
@@ -229,15 +230,14 @@ function textures = GetTextures(checkers_size, im_ids, im_path, eye_diameter, pe
     norm = ones(size(norm))*screen.gray;
     textures{1} = Screen('MakeTexture', screen.w, norm);
     
-    textures{2} = GetCheckersTex(size(norm), checkers_size);
+    textures{2} = GetCheckersTex(screen, size(norm), checkers_size);
 end
 
 function [center_rect, mask_rect, peri_rect, offset, pd] = GetRectangles(...
-        center_size, mask_size, center_center, chip_type)
+        screen, center_size, mask_size, center_center, chip_type)
     % get the rectanles needed in the stimulus
     % this are not the destination rectangles used in drawTexture but the
     % source ones
-    global screen
     
     center_rect = SetRect(0, 0, center_size, center_size);
     mask_rect = SetRect(0, 0, center_size + 2*mask_size, center_size + 2*mask_size);
@@ -260,9 +260,8 @@ function [center_rect, mask_rect, peri_rect, offset, pd] = GetRectangles(...
     pd = GetRect('pd');
 end
 
-function OneTrial(peri_tex, center_tex, obj_contrast, peri_rect, center_rect, mask_rect, patch_offset, chip_type, sequence)
+function OneTrial(screen, peri_tex, center_tex, obj_contrast, peri_rect, center_rect, mask_rect, patch_offset, chip_type, sequence)
 % Jitter around peri_tex and center_tex
-    global screen
     
     for frame = 1:size(sequence,1)
         im_offset = [sequence(frame,1) sequence(frame,2) sequence(frame,1) sequence(frame,2)];
@@ -278,7 +277,7 @@ function OneTrial(peri_tex, center_tex, obj_contrast, peri_rect, center_rect, ma
         Screen('DrawTexture', screen.w, center_tex, center_rect + im_offset, center_rect + patch_offset, 0, 0, obj_contrast);
         Screen('Blendfunction', screen.w, GL_ONE, GL_ZERO);
         
-        MaskHiDensArray(chip_type);
+        MaskHiDensArray(screen, chip_type);
         
         if frame==1
             Screen('FillRect', screen.w, screen.white, screen.pd);

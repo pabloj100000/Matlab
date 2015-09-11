@@ -1,8 +1,6 @@
-function Tex = GetCheckersTex(stimSize, barsWidth)
-    global screen
+function Tex = GetCheckersTex(screen, stimSize, barsWidth)
     Add2StimLogList();
     
-    InitScreen(0);
     if size(stimSize,2)==1
         [x, y]  = meshgrid(0:stimSize-1);
     else

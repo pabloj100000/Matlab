@@ -17,7 +17,7 @@ function output = NatSceneImage(image, input_pix_per_degree, ...
     xin = size(image,1);
     yin = size(image,2);
     
-    output = ones(output_size);
+    output = ones(round(output_size));
     
     % mirror image along rows
     if output_size(1) < xin

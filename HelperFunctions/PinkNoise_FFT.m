@@ -6,7 +6,7 @@ function y = PinkNoise_FFT(size, varargin)
 % vector of pink (flicer) noise samples
 %
 % Note:
-% Use on your risk.
+% Use at your own risk.
 
     p = ParseInput(varargin{:});
     seed = p.Results.seed;

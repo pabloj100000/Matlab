@@ -19,10 +19,9 @@ function AlphaTest3()
     % SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1, 'periIndex', -1)
     % SaccadesAndFEM('objAlpha', 0, 'periAlpha', 1, 'objMeanLum', -127)
     % SaccadesAndFEM('objAlpha', 1, 'periAlpha', 1, 'objMeanLum', -127, 'periMeanLum', 127)
-global screen
     
     v_mean = 127;
-    InitScreen(0);
+    screen = InitScreen(0, 1024, 768, 60);
     
     % display 4 checkers at 4 different colors
     ctrl = [0 63 127 255];
@@ -31,10 +30,10 @@ global screen
     rect2 = OffsetRect(rect1, screen.rect(3)/4, 0);
     rect3 = OffsetRect(rect2, screen.rect(3)/4, 0);
 
-    rect4 = offsetRect(rect, 0, screen.rect(4)/2);
-    rect5 = offsetRect(rect1, 0, screen.rect(4)/2);
-    rect6 = offsetRect(rect2, 0, screen.rect(4)/2);
-    rect7 = offsetRect(rect3, 0, screen.rect(4)/2);
+    rect4 = OffsetRect(rect, 0, screen.rect(4)/2);
+    rect5 = OffsetRect(rect1, 0, screen.rect(4)/2);
+    rect6 = OffsetRect(rect2, 0, screen.rect(4)/2);
+    rect7 = OffsetRect(rect3, 0, screen.rect(4)/2);
     
     Screen('FillRect', screen.w, 127, rect);
     Screen('FillRect', screen.w, 0, rect1);

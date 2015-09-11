@@ -5,8 +5,6 @@ function RF(varargin)
     % objContrast, objJitterPeriod, objSeed, stimSize, objSizeH, objSizeV,
     % objCenterXY, backContrast, backJitterPeriod, presentationLength,
     % movieDurationSecs, pdStim, debugging, barsWidth, waitframes, vbl
-    global screen
-
     p=ParseInput(varargin{:});
 
     objContrast = p.Results.objContrast;
@@ -18,14 +16,13 @@ function RF(varargin)
     waitframes = p.Results.waitframes;
     objCenterXY = p.Results.objCenterXY;
     noise.type = p.Results.noiseType;
-    chip_type = p.Results.chip_type;    % this is preventing illumination of
+    array_type = p.Results.array_type;    % this is preventing illumination of
  
 try
 
-    InitScreen(0, 1024, 768, 100);
+    screen = InitScreen(0, 800, 600, 100);
     Add2StimLogList();
 
-    start_t = datestr(now, 'HH:MM:SS');
     
     checkersN_H = ceil(stimSize(1)/checkerSizeX);
     checkersN_V = ceil(stimSize(2)/checkerSizeY);
@@ -50,12 +47,18 @@ try
     
     Screen('FillRect', screen.w, screen.gray);
 
-    % Animationloop:
-    RandomCheckers(framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
-        randomStream, pd, whiteFrames, objRect, noise, chip_type);
+    start_t = clock;
 
-    FinishExperiment();
-    add_experiments_to_db(start_t, varargin)
+    % Animationloop:
+    vbls = RandomCheckers(screen, framesN, waitframes, checkersN_V, checkersN_H, objContrast,...
+        randomStream, pd, whiteFrames, objRect, noise, array_type);
+
+    Screen('CloseAll');
+    Priority(0);
+    ShowCursor();
+
+    add_experiments_to_db(start_t, vbls, varargin)
+        
 catch exception
     %this "catch" section executes in case of an error in the "try" section
     %above. Importantly, it closes the onscreen window if its open.
@@ -64,9 +67,8 @@ catch exception
 end %try..catch..
 end
 
-function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, ...
-    objContrast, randomStream, pd, whiteFrames, objRect, noise, chip_type)
-    global screen
+function [vbls] = RandomCheckers(screen, framesN, waitframes, checkersV, checkersH, ...
+    objContrast, randomStream, pd, whiteFrames, objRect, noise, array_type)
 
     
     for frame = 0:framesN-1
@@ -99,7 +101,7 @@ function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, 
             color = objColor(1,1)/2+screen.gray/2;
         end
         
-        MaskHiDensArray(chip_type);
+        MaskHiDensArray(screen, array_type);
  
         % Draw the PD box
         Screen('FillOval', screen.w, color, pd);
@@ -109,14 +111,15 @@ function [exitFlag] = RandomCheckers(framesN, waitframes, checkersV, checkersH, 
         % Flip 'waitframes' monitor refresh intervals after last redraw.
         screen.vbl = Screen('Flip', screen.w, screen.vbl + (waitframes-.5) * screen.ifi);
 
+        if ~exist('vbls', 'var')
+            vbls = screen.vbl;
+        end
+        
         if (KbCheck)
             break
         end
     end
-    
-    if (frame >= framesN)
-        exitFlag = 1;
-    end
+    vbls(2) = screen.vbl;
 end
 
 
@@ -160,7 +163,7 @@ function p =  ParseInput(varargin)
     p.addParameter('pdStim', 0, @(x) isnumeric(x));
     p.addParameter('noiseType', 'binary', @(x) strcmp(x,'binary') || ...
         strcmp(x,'gaussian'));
-    p.addParameter('chip_type', 'HiDens_v3', @(x) isstring(x));   % in what units?
+    p.addParameter('array_type', 'HiDens_v3', @(x) ischar(x));   % in what units?
     
     % Call the parse method of the object to read and validate each argument in the schema:
     p.parse(varargin{:});

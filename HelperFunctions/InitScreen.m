@@ -1,19 +1,14 @@
-function InitScreen(debugging, width, height, rate, varargin)
+function screen = InitScreen(debugging, width, height, rate, varargin)
     % Initializes the Screen.
     % The idea here is that you can call this function from within a given
     % stimulus where the 2nd parameter might or might no be defined. If it
     % is defined this function does nothing but if it is not defined then
     % this function initializes the screen.
     
-    global screen
-    
     p = ParseInput(varargin{:});
     backColor = p.Results.backColor;
 
     Add2StimLogList();
-    if (isfield(screen, 'w'))
-        return
-    end
 
     % write which function initialized the screen. So that we know when to
     % close it.
@@ -35,7 +30,7 @@ function InitScreen(debugging, width, height, rate, varargin)
     else
         Screen('Resolution', screen.screenNumber, width, height, rate);
     end
-
+    
     % Find the color values which correspond to white and black.
     screen.white=WhiteIndex(screen.screenNumber);
     screen.black=BlackIndex(screen.screenNumber);
@@ -94,7 +89,7 @@ function p = ParseInput(varargin)
     p  = inputParser;   % Create an instance of the inputParser class.
 
     % Gabor parameters
-    p.addParamValue('backColor', 127, @(x) x>=0 && x<=255);      % dimension of the two patches to discriminate
+    p.addParamValue('backColor', 127, @(x) x>=0 && x<=255);
     
     p.parse(varargin{:});
 end
