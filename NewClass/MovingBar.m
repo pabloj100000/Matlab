@@ -31,7 +31,7 @@ function MovingBar(species_or_size, varargin)
     
  
 try
-    screen = InitScreen(0, 1024, 768, 60)
+    screen = InitScreen(0, 800, 600, 60);
 
     Add2StimLogList();
 
@@ -224,36 +224,36 @@ function p =  ParseInput(varargin)
     p  = inputParser;   % Create an instance of the inputParser class.
 
     path1 = '/Users/jadz/Documents/Notebook/Matlab/Eye tracking Mice/Marcel De Jeu/Data/mouse2-HV.mat';
-    path2 = '~/Desktop/stimuli/pablo/Marcel De Jeu/Data/mouse2-HV';
+    path2 = '/Users/baccuslab/Desktop/stimuli/Pablo/Matlab/Mouse-eye-movements/Marcel De Jeu/Data/mouse2-HV.mat';
     if exist(path1, 'file')
         path = path1;
     else
         path = path2;
     end
         
-    p.addParameter('eye_movement_file', ...
+    p.addParamValue('eye_movement_file', ...
         path, ...
         @(x) exist(x, 'file'));
     
-    p.addParameter('bar_contrasts', [0, .1 .2 .4], @(x) all(x)>=0 && all(x)<=1 && size(x,1)==1);
-    p.addParameter('bar_widths_deg', [.5 1 2 4], @(x) isnumeric(x) && size(x,1)==1);   % in degrees
-    p.addParameter('bars_spacing_secs', 1, @(x) x>0);        % in seconds, how often should a leading edge of a bar pass through a given point
-    p.addParameter('bars_speed_deg_per_sec', 10, @(x) x>0);          % in degrees per second
-    p.addParameter('bars_height_deg', 10, @(x) x>0);      % in degrees
-    p.addParameter('object_type', 1, @(x) x==0 || x==1 || x==2);    % 0:    transparent object
+    p.addParamValue('bar_contrasts', [0, .1 .2 .4], @(x) all(x)>=0 && all(x)<=1 && size(x,1)==1);
+    p.addParamValue('bar_widths_deg', [.5 1 2 4], @(x) isnumeric(x) && size(x,1)==1);   % in degrees
+    p.addParamValue('bars_spacing_secs', 1, @(x) x>0);        % in seconds, how often should a leading edge of a bar pass through a given point
+    p.addParamValue('bars_speed_deg_per_sec', 10, @(x) x>0);          % in degrees per second
+    p.addParamValue('bars_height_deg', 10, @(x) x>0);      % in degrees
+    p.addParamValue('object_type', 1, @(x) x==0 || x==1 || x==2);    % 0:    transparent object
                                                                     % 1: gray background that moves with bars
                                                                     % 2: gray long sripe that is always present and doesn't move
                                                                     
-    p.addParameter('seed', 1, @(x) isnumeric(x));
-    p.addParameter('jitter_length', 5, @(x)x>0);
-    p.addParameter('stimSize', 32*PIXELS_PER_100_MICRONS*[1 1], @(x) all(size(x)==[1 2]) && all(x>0));
-    p.addParameter('debugging', 0, @(x)x>=0 && x <=1);
-    p.addParameter('checkerSizeX', PIXELS_PER_100_MICRONS, @(x) x>0);
-    p.addParameter('checkerSizeY', PIXELS_PER_100_MICRONS, @(x) x>0);
-    p.addParameter('jitter_start', 0, @(x) isnumeric(x) && x >= 0);
-    p.addParameter('repeats_per_block', 55, @(x) isnumeric(x) && x > 0);
-    p.addParameter('blocks_nb', 2, @(x) isnumeric(x) && x > 0);
-    p.addParameter('array_type', 'HiDens_v3', @(x) ischar(x));   % in what units?
+    p.addParamValue('seed', 1, @(x) isnumeric(x));
+    p.addParamValue('jitter_length', 5, @(x)x>0);
+    p.addParamValue('stimSize', 32*PIXELS_PER_100_MICRONS*[1 1], @(x) all(size(x)==[1 2]) && all(x>0));
+    p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
+    p.addParamValue('checkerSizeX', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParamValue('checkerSizeY', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParamValue('jitter_start', 5, @(x) isnumeric(x) && x >= 0);
+    p.addParamValue('repeats_per_block', 55, @(x) isnumeric(x) && x > 0);
+    p.addParamValue('blocks_nb', 2, @(x) isnumeric(x) && x > 0);
+    p.addParamValue('array_type', 'HiDens_v3', @(x) ischar(x));   % in what units?
     
     % Call the parse method of the object to read and validate each argument in the schema:
     p.parse(varargin{:});

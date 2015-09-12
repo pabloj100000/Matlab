@@ -28,7 +28,7 @@ function screen = InitScreen(debugging, width, height, rate, varargin)
     if screen.rate==0
         Screen('Preference', 'SkipSyncTests',1);
     else
-        Screen('Resolution', screen.screenNumber, width, height, rate);
+        Screen('Resolution', screen.screenNumber);%, width, height, rate);
     end
     
     % Find the color values which correspond to white and black.

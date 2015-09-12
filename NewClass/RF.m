@@ -57,7 +57,7 @@ try
     Priority(0);
     ShowCursor();
 
-    add_experiments_to_db(start_t, vbls, varargin)
+%    add_experiments_to_db(start_t, vbls, varargin)
         
 catch exception
     %this "catch" section executes in case of an error in the "try" section
@@ -151,19 +151,19 @@ function p =  ParseInput(varargin)
         frameRate=100;
     end
     
-    p.addParameter('objContrast', 1, @(x) x>=0 && x<=1);
-    p.addParameter('seed', 1, @(x) isnumeric(x));
-    p.addParameter('movieDurationSecs', 1000, @(x)x>0);
-    p.addParameter('stimSize', 32*PIXELS_PER_100_MICRONS*[1 1], @(x) all(size(x)==[1 2]) && all(x>0));
-    p.addParameter('debugging', 0, @(x)x>=0 && x <=1);
-    p.addParameter('checkerSizeX', PIXELS_PER_100_MICRONS, @(x) x>0);
-    p.addParameter('checkerSizeY', PIXELS_PER_100_MICRONS, @(x) x>0);
-    p.addParameter('waitframes', round(.033*frameRate), @(x)isnumeric(x)); 
-    p.addParameter('objCenterXY', [0 0], @(x) all(size(x) == [1 2]));
-    p.addParameter('pdStim', 0, @(x) isnumeric(x));
-    p.addParameter('noiseType', 'binary', @(x) strcmp(x,'binary') || ...
+    p.addParamValue('objContrast', 1, @(x) x>=0 && x<=1);
+    p.addParamValue('seed', 1, @(x) isnumeric(x));
+    p.addParamValue('movieDurationSecs', 1000, @(x)x>0);
+    p.addParamValue('stimSize', 32*PIXELS_PER_100_MICRONS*[1 1], @(x) all(size(x)==[1 2]) && all(x>0));
+    p.addParamValue('debugging', 0, @(x)x>=0 && x <=1);
+    p.addParamValue('checkerSizeX', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParamValue('checkerSizeY', PIXELS_PER_100_MICRONS, @(x) x>0);
+    p.addParamValue('waitframes', round(.033*frameRate), @(x)isnumeric(x)); 
+    p.addParamValue('objCenterXY', [0 0], @(x) all(size(x) == [1 2]));
+    p.addParamValue('pdStim', 0, @(x) isnumeric(x));
+    p.addParamValue('noiseType', 'binary', @(x) strcmp(x,'binary') || ...
         strcmp(x,'gaussian'));
-    p.addParameter('array_type', 'HiDens_v3', @(x) ischar(x));   % in what units?
+    p.addParamValue('array_type', 'HiDens_v3', @(x) ischar(x));   % in what units?
     
     % Call the parse method of the object to read and validate each argument in the schema:
     p.parse(varargin{:});
